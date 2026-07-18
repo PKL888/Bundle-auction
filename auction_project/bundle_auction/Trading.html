@@ -1,0 +1,163 @@
+{{ block title }}
+    {{ if player.is_buyer }}
+        Buyer {{ player.buyer_id }}
+    {{ else }}
+        Seller (Type {{ player.seller_type }})
+    {{ endif }}
+{{ endblock }}
+
+{{ block content }}
+    <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+        <!-- Inventory / Status Panel -->
+        <div style="border: 1px solid #ccc; padding: 15px; width: 45%;">
+            <h4>Your status</h4>
+            <p><strong>Total profit:</strong> <span id="inv_profit">{{ player.profit|to1 }}</span></p>
+            <p>
+                <strong>Units {{ if player.is_buyer }}bought{{ else }}sold{{ endif }}:</strong><br>
+                Product A: <span id="inv_a">{{ player.displayed_qa }}</span> | 
+                Product B: <span id="inv_b">{{ player.displayed_qb }}</span>
+            </p>
+            <hr>
+            <h5>Next unit {{ if player.is_buyer }}value (MV){{ else }}cost (MC){{ endif }}</h5>
+            {{ for p in active_products }}
+                <p>{{ p.label }}: <span id="marginal_{{ p.safe_id }}">--</span></p>
+            {{ endfor }}
+
+            <!-- <hr>
+            <div style="background-color: #f8f9fa; padding: 10px; border-radius: 4px; font-size: 0.9em;">
+                <strong>Market parameters:</strong><br>
+                Alpha (&alpha;): {{ player.subsession.alpha }} | Gamma (&gamma;): {{ player.subsession.gamma }} | Weight (w): {{ player.subsession.x_param|to0 }}
+            </div> -->
+        </div>
+        
+        <!-- Order Entry Panel -->
+        <div style="border: 1px solid #ccc; padding: 15px; width: 45%;">
+            <h4>Submit Order (1 unit)</h4>
+            <input type="number" id="price" placeholder="Price" min="1" step="1" style="width: 100px;">
+            <select id="product_type">
+                {{ for p in active_products }}
+                    <option value="{{ p.id }}">{{ p.label }}</option>
+                {{ endfor }}
+            </select>
+            <br><br>
+            {{ if player.is_buyer }}
+                <button type="button" onclick="submitOrder('bid')" style="background-color: #28a745; color: white; padding: 5px 15px; border: none; border-radius: 3px; cursor: pointer;">Submit Bid</button>
+            {{ else }}
+                <button type="button" onclick="submitOrder('ask')" style="background-color: #dc3545; color: white; padding: 5px 15px; border: none; border-radius: 3px; cursor: pointer;">Submit Ask</button>
+            {{ endif }}
+        </div>
+    </div>
+
+    <hr>
+    
+    <!-- Dynamic Order Book Grid -->
+    <h4>Order book</h4>
+    <div style="display: flex; gap: 15px; justify-content: space-between;">
+        {{ for p in active_products }}
+            <div style="flex: 1; border: 1px solid #eee; padding: 10px; border-radius: 5px;">
+                <h5 style="text-align: center; border-bottom: 1px solid #ccc; padding-bottom: 5px;">{{ p.label }}</h5>
+                <div style="display: flex; justify-content: space-between;">
+                    <div style="width: 48%;">
+                        <strong style="color: #28a745;">Bids</strong>
+                        <ul id="bids_{{ p.safe_id }}" style="padding-left: 20px; font-family: monospace;"></ul>
+                    </div>
+                    <div style="width: 48%;">
+                        <strong style="color: #dc3545;">Asks</strong>
+                        <ul id="asks_{{ p.safe_id }}" style="padding-left: 20px; font-family: monospace;"></ul>
+                    </div>
+                </div>
+            </div>
+        {{ endfor }}
+    </div>
+
+    <hr>
+
+    <!-- Trade Ledger -->
+    <h4>Recent trades</h4>
+    <div style="border: 1px solid #007bff; padding: 10px; border-radius: 5px; background-color: #f8fbff;">
+        <ul id="trade_ledger" style="padding-left: 20px; font-family: monospace; margin: 0;"></ul>
+    </div>
+{{ endblock }}
+
+{{ block scripts }}
+<script>
+    const productsData = js_vars.active_products;
+    const activeProducts = productsData.map(p => p.id);
+
+    function slugify(text) {
+        return text.toString().toLowerCase()
+            .replace(/\s+/g, '-')           
+            .replace(/[^\w\-]+/g, '')       
+            .replace(/\-\-+/g, '-')         
+            .replace(/^-+/, '')             
+            .replace(/-+$/, '');            
+    }
+    
+    function submitOrder(action) {
+        let priceInput = document.getElementById('price').value;
+        let pType = document.getElementById('product_type').value;
+        let price = Number(priceInput);
+        
+        if (!priceInput || !Number.isInteger(price) || price < 0) {
+            return alert("Please enter a valid whole number for the price.");
+        }
+
+        liveSend({
+            'action': action,
+            'price': parseInt(price),
+            'product_type': pType
+        });
+        
+        document.getElementById('price').value = '';
+        document.getElementById('price').focus();
+    }
+    
+    function liveRecv(data) {
+        if (data.error) {
+            alert(data.error);
+            return;
+        }
+
+        document.getElementById('inv_profit').innerText = data.inventory.profit.toFixed(1);
+        // Typo corrected here: diplayed -> displayed
+        document.getElementById('inv_a').innerText = data.inventory.displayed_a;
+        document.getElementById('inv_b').innerText = data.inventory.displayed_b;
+        
+        activeProducts.forEach(ptype => {
+            let safeId = slugify(ptype);
+            document.getElementById('marginal_' + safeId).innerText = data.marginals[ptype].toFixed(2);
+            
+            let bidsList = document.getElementById('bids_' + safeId);
+            let asksList = document.getElementById('asks_' + safeId);
+            bidsList.innerHTML = '';
+            asksList.innerHTML = '';
+            
+            data.order_book[ptype].bids.forEach(bid => { bidsList.innerHTML += `<li>${bid.price}</li>`; });
+            data.order_book[ptype].asks.forEach(ask => { asksList.innerHTML += `<li>${ask.price}</li>`; });
+        });
+
+        let tradeLedger = document.getElementById('trade_ledger');
+        tradeLedger.innerHTML = '';
+        if (data.trades.length === 0) {
+            tradeLedger.innerHTML = '<li style="color: #999;">No trades yet</li>';
+        } else {
+            data.trades.slice().reverse().forEach(trade => {
+                tradeLedger.innerHTML += `<li> ${trade.type} @ ${trade.price}</li>`;
+            });
+        }
+    }
+    
+    window.addEventListener('DOMContentLoaded', (event) => {
+        liveSend({}); 
+        
+        // --- ENTER KEY BINDING ---
+        document.getElementById('price').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const action = "{{ if player.is_buyer }}bid{{ else }}ask{{ endif }}";
+                submitOrder(action);
+            }
+        });
+    });
+</script>
+{{ endblock }}

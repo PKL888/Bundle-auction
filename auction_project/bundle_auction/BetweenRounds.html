@@ -1,0 +1,14 @@
+{{ block title }}
+    Round complete
+{{ endblock }}
+
+{{ block content }}
+    <div style="text-align: center; margin-top: 50px;">
+        <h3>Round {{ player.round_number }} has concluded.</h3>
+        <p style="font-size: 1.2em;">Your total accumulated profit so far is: <strong>{{ total_profit|to1 }}</strong></p>
+        
+        <br>
+        <p>Please wait for the next round to begin. Your role (Buyer or Seller) may be reassigned.</p>
+        <p><em>The next round will start automatically in 30 seconds.</em></p>
+    </div>
+{{ endblock }}
