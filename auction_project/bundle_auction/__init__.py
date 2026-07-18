@@ -32,26 +32,21 @@ class Subsession(BaseSubsession):
     x_param = models.FloatField()
 
 def creating_session(subsession: Subsession):
-    # Choose parameter values in each round
     if subsession.round_number == 1:
         full_sequence = C.PARAMETERS * C.REPETITIONS
         random.shuffle(full_sequence)
         subsession.session.vars['parameter_sequence'] = full_sequence
         
     current_alpha, current_gamma = subsession.session.vars['parameter_sequence'][subsession.round_number - 1]
-
     subsession.alpha = current_alpha
     subsession.gamma = current_gamma
     
-    # Calculate bundle weight for menu
     numerator = 1 - (current_alpha * current_gamma)
     denominator = (current_alpha**2) - (current_alpha * current_gamma)
     subsession.x_param = float(round(numerator / denominator))
 
-    # Assign roles (fixed)
     for group in subsession.get_groups():
         players = group.get_players()
-        # random.shuffle(players) # Randomise roles across rounds
         
         midpoint = len(players) // 2
         buyer_count = 1
@@ -139,16 +134,6 @@ class Player(BasePlayer):
             return val_int + val_frac
             
         return value_sum(qa) + value_sum(qb)
-
-    # def get_tv(self, qa, qb, n_buyers):
-    #     if not self.is_buyer: return 0.0
-        
-    #     def value_sum(q):
-    #         if q <= 0: return 0.0
-    #         constant_term = C.OMEGA + C.THETA * n_buyers - C.THETA * self.buyer_id
-    #         return (q * constant_term) - (C.THETA * n_buyers * 0.5 * (q**2 + q))
-            
-    #     return value_sum(qa) + value_sum(qb)
 
     def evaluate_marginal_change(self, p_type, n_buyers):
         qa = self.underlying_qa
@@ -244,7 +229,7 @@ class Trading(Page):
                 {'id': 'Product B', 'safe_id': 'product-b', 'label': 'Product B'}
             ]
             
-        return dict(active_products=active_products)
+        return dict(active_products=active_products, is_buyer=player.is_buyer)
     
     @staticmethod
     def live_method(player, data):
@@ -328,36 +313,35 @@ class Trading(Page):
                         )
 
         active_orders = Order.filter(group=group, is_active=True)
-        order_book = {ptype: {'bids': [], 'asks': []} for ptype in valid_products}
-
-        for o in active_orders:
-            if o.product_type in valid_products:
-                order_dict = {'price': o.price}
-                if o.is_bid:
-                    order_book[o.product_type]['bids'].append(order_dict)
-                else:
-                    order_book[o.product_type]['asks'].append(order_dict)
-
-        for ptype in valid_products:
-            order_book[ptype]['bids'].sort(key=lambda x: x['price'], reverse=True)
-            order_book[ptype]['asks'].sort(key=lambda x: x['price'])
-            
         trades = Trade.filter(group=group)
-        trade_list = [{'type': t.product_type, 'price': t.price} for t in trades]
             
         response = {}
         for p in players:
-            cumulative_profit = sum([prev_p.profit for prev_p in p.in_all_rounds()])
+            player_order_book = {ptype: {'bids': [], 'asks': []} for ptype in valid_products}
+            
+            for o in active_orders:
+                if o.product_type in valid_products:
+                    order_dict = {'price': o.price, 'is_mine': (o.player == p)}
+                    if o.is_bid:
+                        player_order_book[o.product_type]['bids'].append(order_dict)
+                    else:
+                        player_order_book[o.product_type]['asks'].append(order_dict)
+                        
+            for ptype in valid_products:
+                player_order_book[ptype]['bids'].sort(key=lambda x: x['price'], reverse=True)
+                player_order_book[ptype]['asks'].sort(key=lambda x: x['price'])
+                
+            player_trade_list = [{'type': t.product_type, 'price': t.price, 'is_mine': (t.buyer == p or t.seller == p)} for t in trades]
             
             marginals_dict = {}
             for prod in valid_products:
                 marginals_dict[prod] = float(p.evaluate_marginal_change(prod, n_buyers))
 
             response[p.id_in_group] = {
-                'order_book': order_book,
-                'trades': trade_list,
+                'order_book': player_order_book,
+                'trades': player_trade_list,
                 'inventory': {
-                    'profit': float(cumulative_profit),
+                    'profit': float(p.profit),
                     'displayed_a': p.displayed_qa,
                     'displayed_b': p.displayed_qb,
                 },
@@ -378,4 +362,4 @@ class FinalResults(Page):
     @staticmethod
     def vars_for_template(player): return {'total_profit': sum([p.profit for p in player.in_all_rounds()])}
 
-page_sequence = [Welcome, ReadyToStart, Trading, BetweenRounds, FinalResults]
+page_sequence = [ReadyToStart, Trading, BetweenRounds, FinalResults]

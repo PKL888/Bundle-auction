@@ -1,86 +1,296 @@
-{{ block title }}
-    {{ if player.is_buyer }}
-        Buyer {{ player.buyer_id }}
-    {{ else }}
-        Seller (Type {{ player.seller_type }})
-    {{ endif }}
-{{ endblock }}
-
 {{ block content }}
-    <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
-        <!-- Inventory / Status Panel -->
-        <div style="border: 1px solid #ccc; padding: 15px; width: 45%;">
-            <h4>Your status</h4>
-            <p><strong>Total profit:</strong> <span id="inv_profit">{{ player.profit|to1 }}</span></p>
-            <p>
-                <strong>Units {{ if player.is_buyer }}bought{{ else }}sold{{ endif }}:</strong><br>
-                Product A: <span id="inv_a">{{ player.displayed_qa }}</span> | 
-                Product B: <span id="inv_b">{{ player.displayed_qb }}</span>
-            </p>
-            <hr>
-            <h5>Next unit {{ if player.is_buyer }}value (MV){{ else }}cost (MC){{ endif }}</h5>
-            {{ for p in active_products }}
-                <p>{{ p.label }}: <span id="marginal_{{ p.safe_id }}">--</span></p>
-            {{ endfor }}
+<style>
+    /* Full Page Screen Layout */
+    .otree-body { max-width: 100% !important; margin: 0; padding: 0 20px; }
+    .page-container {
+        display: flex;
+        flex-direction: column;
+        height: 95vh;
+        max-height: 95vh;
+        overflow: hidden;
+        font-family: Arial, sans-serif;
+    }
+    
+    /* Top Status Bar */
+    .top-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 30px;
+        background-color: #f8f9fa;
+        border: 2px solid #ccc;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        font-size: 1.3rem;
+        font-weight: bold;
+        position: relative;
+    }
 
-            <!-- <hr>
-            <div style="background-color: #f8f9fa; padding: 10px; border-radius: 4px; font-size: 0.9em;">
-                <strong>Market parameters:</strong><br>
-                Alpha (&alpha;): {{ player.subsession.alpha }} | Gamma (&gamma;): {{ player.subsession.gamma }} | Weight (w): {{ player.subsession.x_param|to0 }}
-            </div> -->
+    .markets-wrapper, .market-box, .market-columns {
+        min-height: 0;
+    }
+
+    /* Market Container Logic */
+    .markets-wrapper {
+        display: flex;
+        flex: 1;
+        gap: 30px;
+        justify-content: center; /* Centers perfectly if only 1 market, spaces out if 2 */
+        overflow: hidden;
+    }
+    
+    .market-box {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        max-width: 700px;
+        border: 2px solid #bbb;
+        border-radius: 8px;
+        background: #fff;
+        overflow: hidden;
+    }
+
+    .market-header {
+        font-size: 1.3rem;
+        font-weight: bold;
+        text-align: center;
+        padding: 12px;
+        background-color: #e9ecef;
+        border-bottom: 2px solid #ccc;
+        color: #333;
+    }
+
+    .market-actions {
+        display: flex;
+        flex: 0 0 auto;
+        background-color: #fdfdfd;
+        border-bottom: 2px solid #ccc;
+        font-size: 1.3rem;
+    }
+
+    /* 3 Column Grid */
+    .market-columns {
+        display: flex;
+        flex: 1;
+        overflow: hidden;
+    }
+    .col {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        border-right: 1px solid #ddd;
+    }
+    .col:last-child { border-right: none; }
+    
+    .col-title {
+        font-size: 1.3rem;
+        font-weight: bold;
+        text-align: center;
+        padding: 10px;
+        background: #fcfcfc;
+        border-bottom: 1px solid #ddd;
+    }
+
+    /* Action & Value Headers */
+    .input-section {
+        padding: 15px 10px;
+        text-align: center;
+        border-bottom: 1px solid #ddd;
+        background: #fdfdfd;
+        min-height: 85px; 
+    }
+    .input-section input {
+        width: 90px;
+        font-size: 1.3rem;
+        padding: 5px;
+        text-align: center;
+        margin-bottom: 8px;
+        border: 1px solid #aaa;
+        border-radius: 4px;
+    }
+    .input-section button {
+        font-size: 1.3rem;
+        font-weight: bold;
+        padding: 6px 20px;
+        cursor: pointer;
+        border: none;
+        border-radius: 4px;
+    }
+    .btn-submit-bid { background-color: #28a745; color: white; }
+    .btn-submit-ask { background-color: #dc3545; color: white; }
+
+    /* Action Columns mapping to the Market Columns */
+    .action-col {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 5px 10px;
+        border-right: 1px solid #ddd; /* Aligns with the border of the lists below */
+    }
+
+    .action-col:last-child {
+        border-right: none;
+    }
+
+    /* Inputs and Buttons matched to the container font size */
+    .action-col input {
+        font-size: 1.3rem;
+        width: 110px;
+        padding: 2px;
+        text-align: center;
+        margin-bottom: 5px;
+        border: 1px solid #aaa;
+        border-radius: 4px;
+    }
+
+    .action-col label {
+        font-weight: bold;
+        margin-bottom: 2px;
+    }
+
+    .action-col button {
+        font-size: 1.3rem;
+        font-weight: bold;
+        padding: 4px 15px;
+        cursor: pointer;
+        border: none;
+        border-radius: 4px;
+    }
+
+    /* Updated Middle Box for Value/Cost */
+    .mv-mc-box-horizontal {
+        text-align: center;
+        width: 100%;
+        padding: 5px 10px;
+        border-radius: 6px;
+        background: #e3f2fd;
+        color: #0d47a1;
+    }
+
+    /* Lists */
+    .list-area {
+        flex: 1;
+        overflow-y: hidden;
+        padding: 10px;
+        margin: 0;
+        list-style: none;
+    }
+    .list-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 12px;
+        margin-bottom: 6px;
+        font-size: 1.3rem;
+        border-radius: 4px;
+        border: 1px solid #eee;
+        background-color: #fafafa;
+    }
+    
+    /* Highlighting */
+    .my-order {
+        background-color: #fff3cd !important;
+        border-color: #ffeeba !important;
+        font-weight: bold;
+    }
+    .my-trade {
+        background-color: #d4edda !important;
+        border-color: #c3e6cb !important;
+        font-weight: bold;
+    }
+
+    /* Instant Action Buttons inside lists */
+    .action-btn {
+        font-size: 1.3rem;
+        font-weight: bold;
+        padding: 4px 12px;
+        cursor: pointer;
+        border: none;
+        border-radius: 4px;
+        color: white;
+    }
+    .btn-quick-buy { background-color: #28a745; }
+    .btn-quick-sell { background-color: #dc3545; }
+
+</style>
+
+<div class="page-container">
+    <!-- Top Status Bar -->
+    <div class="top-bar">
+        <div>Round {{ player.round_number }}</div>
+        <div style="color: #0056b3; position: absolute; left: 50%; transform: translateX(-50%);">
+            Role: {{ if player.is_buyer }}Buyer {{ player.buyer_id }}{{ else }}Seller (Type {{ player.seller_type }}){{ endif }}
         </div>
-        
-        <!-- Order Entry Panel -->
-        <div style="border: 1px solid #ccc; padding: 15px; width: 45%;">
-            <h4>Submit Order (1 unit)</h4>
-            <input type="number" id="price" placeholder="Price" min="1" step="1" style="width: 100px;">
-            <select id="product_type">
-                {{ for p in active_products }}
-                    <option value="{{ p.id }}">{{ p.label }}</option>
-                {{ endfor }}
-            </select>
-            <br><br>
-            {{ if player.is_buyer }}
-                <button type="button" onclick="submitOrder('bid')" style="background-color: #28a745; color: white; padding: 5px 15px; border: none; border-radius: 3px; cursor: pointer;">Submit Bid</button>
-            {{ else }}
-                <button type="button" onclick="submitOrder('ask')" style="background-color: #dc3545; color: white; padding: 5px 15px; border: none; border-radius: 3px; cursor: pointer;">Submit Ask</button>
-            {{ endif }}
-        </div>
+        <div>Current Round Profit: $<span id="round_profit">{{ player.profit|to1 }}</span></div>
     </div>
 
-    <hr>
-    
-    <!-- Dynamic Order Book Grid -->
-    <h4>Order book</h4>
-    <div style="display: flex; gap: 15px; justify-content: space-between;">
+    <!-- Markets -->
+    <div class="markets-wrapper">
         {{ for p in active_products }}
-            <div style="flex: 1; border: 1px solid #eee; padding: 10px; border-radius: 5px;">
-                <h5 style="text-align: center; border-bottom: 1px solid #ccc; padding-bottom: 5px;">{{ p.label }}</h5>
-                <div style="display: flex; justify-content: space-between;">
-                    <div style="width: 48%;">
-                        <strong style="color: #28a745;">Bids</strong>
-                        <ul id="bids_{{ p.safe_id }}" style="padding-left: 20px; font-family: monospace;"></ul>
-                    </div>
-                    <div style="width: 48%;">
-                        <strong style="color: #dc3545;">Asks</strong>
-                        <ul id="asks_{{ p.safe_id }}" style="padding-left: 20px; font-family: monospace;"></ul>
+        <div class="market-box">
+            <div class="market-header">{{ p.label }}</div>
+            
+            <!-- NEW: Unified Action Area Above Columns (3-Column Layout) -->
+            <div class="market-actions">
+                
+                <!-- LEFT COL: Buyer Input -->
+                <div class="action-col">
+                    {{ if player.is_buyer }}
+                        <label for="input_bid_{{ p.safe_id }}">Offer Price:</label>
+                        <input type="number" id="input_bid_{{ p.safe_id }}" placeholder="$" min="1" step="1">
+                        <button type="button" class="btn-submit-bid" onclick="submitInputOrder('bid', '{{ p.id }}', '{{ p.safe_id }}')">Submit Bid</button>
+                    {{ endif }}
+                </div>
+
+                <!-- MIDDLE COL: Next Value/Cost -->
+                <div class="action-col" style="padding: 10px;">
+                    <div class="mv-mc-box-horizontal">
+                        <span style="font-weight: normal; color: #555; display: block;">Next {{ if player.is_buyer }}Value (MV){{ else }}Cost (MC){{ endif }}:</span>
+                        <strong>$<span id="marginal_{{ p.safe_id }}">--</span></strong>
                     </div>
                 </div>
+
+                <!-- RIGHT COL: Seller Input -->
+                <div class="action-col">
+                    {{ if not player.is_buyer }}
+                        <label for="input_ask_{{ p.safe_id }}">Offer Price:</label>
+                        <input type="number" id="input_ask_{{ p.safe_id }}" placeholder="$" min="1" step="1">
+                        <button type="button" class="btn-submit-ask" onclick="submitInputOrder('ask', '{{ p.id }}', '{{ p.safe_id }}')">Submit Ask</button>
+                    {{ endif }}
+                </div>
             </div>
+            
+            <!-- MODIFIED: Market Columns (Now strictly for data/prices) -->
+            <div class="market-columns">
+                <!-- LEFT COL: Buyer Prices (Bids) -->
+                <div class="col">
+                    <div class="col-title" style="color: #28a745;">Buyer Prices</div>
+                    <ul class="list-area" id="bids_{{ p.safe_id }}"></ul>
+                </div>
+
+                <!-- MIDDLE COL: Completed Trades -->
+                <div class="col">
+                    <div class="col-title" style="color: #6c757d;">Completed Trades</div>
+                    <ul class="list-area" id="trades_{{ p.safe_id }}"></ul>
+                </div>
+
+                <!-- RIGHT COL: Seller Prices (Asks) -->
+                <div class="col">
+                    <div class="col-title" style="color: #dc3545;">Seller Prices</div>
+                    <ul class="list-area" id="asks_{{ p.safe_id }}"></ul>
+                </div>
+            </div>
+        </div>
         {{ endfor }}
     </div>
-
-    <hr>
-
-    <!-- Trade Ledger -->
-    <h4>Recent trades</h4>
-    <div style="border: 1px solid #007bff; padding: 10px; border-radius: 5px; background-color: #f8fbff;">
-        <ul id="trade_ledger" style="padding-left: 20px; font-family: monospace; margin: 0;"></ul>
-    </div>
+</div>
 {{ endblock }}
 
 {{ block scripts }}
 <script>
+    const isBuyer = js_vars.is_buyer;
     const productsData = js_vars.active_products;
     const activeProducts = productsData.map(p => p.id);
 
@@ -93,23 +303,27 @@
             .replace(/-+$/, '');            
     }
     
-    function submitOrder(action) {
-        let priceInput = document.getElementById('price').value;
-        let pType = document.getElementById('product_type').value;
-        let price = Number(priceInput);
-        
-        if (!priceInput || !Number.isInteger(price) || price < 0) {
-            return alert("Please enter a valid whole number for the price.");
-        }
-
+    // Core submission function used by both input boxes and quick-action buttons
+    function submitSpecificOrder(action, price, pType) {
         liveSend({
             'action': action,
             'price': parseInt(price),
             'product_type': pType
         });
+    }
+
+    // Handles the manual input box submission
+    function submitInputOrder(action, pType, safeId) {
+        let inputEl = document.getElementById(`input_${action}_${safeId}`);
+        let price = Number(inputEl.value);
         
-        document.getElementById('price').value = '';
-        document.getElementById('price').focus();
+        if (!inputEl.value || !Number.isInteger(price) || price < 0) {
+            return alert("Please enter a valid whole number for the price.");
+        }
+        submitSpecificOrder(action, price, pType);
+        
+        inputEl.value = '';
+        inputEl.focus();
     }
     
     function liveRecv(data) {
@@ -118,45 +332,84 @@
             return;
         }
 
-        document.getElementById('inv_profit').innerText = data.inventory.profit.toFixed(1);
-        // Typo corrected here: diplayed -> displayed
-        document.getElementById('inv_a').innerText = data.inventory.displayed_a;
-        document.getElementById('inv_b').innerText = data.inventory.displayed_b;
+        // Update top bar profit
+        document.getElementById('round_profit').innerText = data.inventory.profit.toFixed(1);
         
         activeProducts.forEach(ptype => {
             let safeId = slugify(ptype);
-            document.getElementById('marginal_' + safeId).innerText = data.marginals[ptype].toFixed(2);
+            document.getElementById('marginal_' + safeId).innerText = data.marginals[ptype].toFixed(1);
             
-            let bidsList = document.getElementById('bids_' + safeId);
-            let asksList = document.getElementById('asks_' + safeId);
-            bidsList.innerHTML = '';
-            asksList.innerHTML = '';
-            
-            data.order_book[ptype].bids.forEach(bid => { bidsList.innerHTML += `<li>${bid.price}</li>`; });
-            data.order_book[ptype].asks.forEach(ask => { asksList.innerHTML += `<li>${ask.price}</li>`; });
-        });
+            // 1. Render Bids Column (Sorted Highest to Lowest)
+            let bidsHTML = '';
+            let sortedBids = data.order_book[ptype].bids.slice().sort((a, b) => b.price - a.price);
+            let bestBidFound = false;
 
-        let tradeLedger = document.getElementById('trade_ledger');
-        tradeLedger.innerHTML = '';
-        if (data.trades.length === 0) {
-            tradeLedger.innerHTML = '<li style="color: #999;">No trades yet</li>';
-        } else {
-            data.trades.slice().reverse().forEach(trade => {
-                tradeLedger.innerHTML += `<li> ${trade.type} @ ${trade.price}</li>`;
+            sortedBids.forEach(bid => {
+                let mineClass = bid.is_mine ? 'my-order' : '';
+                let btnHTML = '';
+                
+                // Add Quick Sell button ONLY to the highest bid that isn't the player's own
+                if (!isBuyer && !bid.is_mine && !bestBidFound) {
+                    btnHTML = `<button type="button" class="action-btn btn-quick-sell" onclick="submitSpecificOrder('ask', ${bid.price}, '${ptype}')">Sell</button>`;
+                    bestBidFound = true; // Lock it so no other buttons are added
+                }
+                
+                bidsHTML += `<li class="list-item ${mineClass}"><span>$${bid.price}</span> ${btnHTML}</li>`;
             });
-        }
+            document.getElementById('bids_' + safeId).innerHTML = bidsHTML;
+            
+            // 2. Render Asks Column (Sorted Lowest to Highest)
+            let asksHTML = '';
+            let sortedAsks = data.order_book[ptype].asks.slice().sort((a, b) => a.price - b.price);
+            let bestAskFound = false;
+
+            sortedAsks.forEach(ask => {
+                let mineClass = ask.is_mine ? 'my-order' : '';
+                let btnHTML = '';
+                
+                // Add Quick Buy button ONLY to the lowest ask that isn't the player's own
+                if (isBuyer && !ask.is_mine && !bestAskFound) {
+                    btnHTML = `<button type="button" class="action-btn btn-quick-buy" onclick="submitSpecificOrder('bid', ${ask.price}, '${ptype}')">Buy</button>`;
+                    bestAskFound = true; // Lock it so no other buttons are added
+                }
+                
+                asksHTML += `<li class="list-item ${mineClass}"><span>$${ask.price}</span> ${btnHTML}</li>`;
+            });
+            document.getElementById('asks_' + safeId).innerHTML = asksHTML;
+
+            // 3. Render Trades Column (filtered to only show trades for this specific market)
+            let tradesHTML = '';
+            let productTrades = data.trades.filter(t => t.type === ptype);
+            
+            if (productTrades.length === 0) {
+                tradesHTML = `<li class="list-item" style="justify-content: center; color: #999; border: none; background: transparent;">No trades</li>`;
+            } else {
+                productTrades.slice().reverse().forEach(trade => {
+                    let mineClass = trade.is_mine ? 'my-trade' : '';
+                    tradesHTML += `<li class="list-item ${mineClass}" style="justify-content: center;">$${trade.price}</li>`;
+                });
+            }
+            document.getElementById('trades_' + safeId).innerHTML = tradesHTML;
+        });
     }
     
     window.addEventListener('DOMContentLoaded', (event) => {
         liveSend({}); 
         
-        // --- ENTER KEY BINDING ---
-        document.getElementById('price').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                const action = "{{ if player.is_buyer }}bid{{ else }}ask{{ endif }}";
-                submitOrder(action);
-            }
+        // Listen for "Enter" key on all input boxes dynamically
+        document.querySelectorAll('input[type="number"]').forEach(input => {
+            input.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    let parts = this.id.split('_'); // e.g., ['input', 'bid', 'product-a']
+                    let action = parts[1];
+                    let safeId = parts[2];
+                    
+                    // Find matching product ID based on safeId
+                    let pType = activeProducts.find(p => slugify(p) === safeId);
+                    if(pType) submitInputOrder(action, pType, safeId);
+                }
+            });
         });
     });
 </script>

@@ -5,7 +5,7 @@ SESSION_CONFIGS = [
         name='auction_baseline',
         display_name="Double auction - Baseline (Stacking)",
         app_sequence=['bundle_auction'],
-        num_demo_participants=2,
+        num_demo_participants=4,
         treatment='baseline'
     ),
     dict(
