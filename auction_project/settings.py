@@ -5,21 +5,21 @@ SESSION_CONFIGS = [
         name='auction_baseline',
         display_name="Double auction - Baseline (Stacking)",
         app_sequence=['bundle_auction'],
-        num_demo_participants=4,
+        num_demo_participants=6,
         treatment='baseline'
     ),
     dict(
         name='auction_single_package',
         display_name="Double auction - Single Package",
         app_sequence=['bundle_auction'],
-        num_demo_participants=2,
+        num_demo_participants=6,
         treatment='single_package'
     ),
     dict(
         name='auction_package_menu',
         display_name="Double auction - Package Menu",
         app_sequence=['bundle_auction'],
-        num_demo_participants=2,
+        num_demo_participants=6,
         treatment='package_menu'
     ),
 ]

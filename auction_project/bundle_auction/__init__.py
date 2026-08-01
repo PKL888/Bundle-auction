@@ -9,7 +9,13 @@ Multi-attribute continuous double auction with dynamic marginal costs and values
 class C(BaseConstants):
     NAME_IN_URL = 'bundle_auction'
     PLAYERS_PER_GROUP = None
-    NUM_ROUNDS = 4
+
+    TRADING_LENGTH = 180
+    WAITING_LENGTH = 30
+
+    NUM_PRACTICE_ROUNDS = 1
+    NUM_REAL_ROUNDS = 4
+    NUM_ROUNDS = NUM_PRACTICE_ROUNDS + NUM_REAL_ROUNDS
     
     ALL_PRODUCTS = ['Product A', 'Product B', 'Package', 'Package 1', 'Package 2']    
 
@@ -20,7 +26,7 @@ class C(BaseConstants):
         (0.61, -0.63),
         (0.61, -0.38)
     ]
-    REPETITIONS = int(NUM_ROUNDS / 4)
+    REPETITIONS = int(NUM_REAL_ROUNDS / 4)
 
     # Fixed benefit parameters
     OMEGA = 15.0
@@ -33,8 +39,11 @@ class Subsession(BaseSubsession):
 
 def creating_session(subsession: Subsession):
     if subsession.round_number == 1:
-        full_sequence = C.PARAMETERS * C.REPETITIONS
-        random.shuffle(full_sequence)
+        real_sequence = C.PARAMETERS * C.REPETITIONS
+        random.shuffle(real_sequence)
+        practice_sequence = random.choices(C.PARAMETERS, k=C.NUM_PRACTICE_ROUNDS)
+        full_sequence = practice_sequence + real_sequence
+        
         subsession.session.vars['parameter_sequence'] = full_sequence
         
     current_alpha, current_gamma = subsession.session.vars['parameter_sequence'][subsession.round_number - 1]
@@ -157,7 +166,7 @@ class Order(ExtraModel):
     player = models.Link(Player)
     is_bid = models.BooleanField()
     product_type = models.StringField()
-    price = models.IntegerField()
+    price = models.FloatField()
     timestamp = models.FloatField()
     is_active = models.BooleanField(initial=True) 
 
@@ -166,7 +175,7 @@ class Trade(ExtraModel):
     buyer = models.Link(Player)
     seller = models.Link(Player)
     product_type = models.StringField()
-    price = models.IntegerField()
+    price = models.FloatField()
     buyer_profit = models.FloatField()
     seller_profit = models.FloatField()
     timestamp = models.FloatField()
@@ -190,7 +199,7 @@ class ReadyToStart(WaitPage):
     pass
 
 class Trading(Page):
-    timeout_seconds = 180
+    timeout_seconds = C.TRADING_LENGTH
 
     @staticmethod
     def vars_for_template(player):
@@ -198,11 +207,11 @@ class Trading(Page):
         x = int(player.subsession.x_param)
 
         if treatment == 'single_package':
-            active_products = [{'id': 'Package', 'safe_id': 'package', 'label': 'Package (1x Product A, 1x Product B)'}]
+            active_products = [{'id': 'Package', 'safe_id': 'package', 'label': 'Package (1 &times; A, 1 &times; B)'}]
         elif treatment == 'package_menu':
             active_products = [
-                {'id': 'Package 1', 'safe_id': 'package-1', 'label': f'Package 1 ({x}x Product A, 1x Product B)'},
-                {'id': 'Package 2', 'safe_id': 'package-2', 'label': f'Package 2 (1x Product A, {x}x Product B)'}
+                {'id': 'Package 1', 'safe_id': 'package-1', 'label': f'Package 1 ({x} &times; A, 1 &times; B)'},
+                {'id': 'Package 2', 'safe_id': 'package-2', 'label': f'Package 2 (1 &times; A, {x} &times; B)'}
             ]
         else:
             active_products = [
@@ -210,8 +219,17 @@ class Trading(Page):
                 {'id': 'Product B', 'safe_id': 'product-b', 'label': 'Product B'}
             ]
             
-        return {'active_products': active_products, 'treatment': treatment}
-    
+        is_practice = player.round_number <= C.NUM_PRACTICE_ROUNDS
+        if is_practice:
+            display_round = f"Practice Round {player.round_number}"
+        else:
+            display_round = f"Round {player.round_number - C.NUM_PRACTICE_ROUNDS}"
+            
+        return {
+            'active_products': active_products, 
+            'treatment': treatment,
+            'display_round': display_round
+        }    
     @staticmethod
     def js_vars(player):
         treatment = player.session.config.get('treatment', 'baseline')
@@ -248,7 +266,7 @@ class Trading(Page):
                 is_bid = (data['action'] == 'bid')
                     
                 if is_bid == player.is_buyer:
-                    new_price = int(data['price'])
+                    new_price = round(float(data['price']), 2)
                     p_type = data['product_type']
                     
                     if is_bid:
@@ -344,22 +362,113 @@ class Trading(Page):
                     'profit': float(p.profit),
                     'displayed_a': p.displayed_qa,
                     'displayed_b': p.displayed_qb,
-                },
+                    'trades_A': p.trades_A,
+                    'trades_B': p.trades_B,
+                    'trades_Pkg': p.trades_Pkg,
+                    'trades_Pkg1': p.trades_Pkg1,
+                    'trades_Pkg2': p.trades_Pkg2,                },
                 'marginals': marginals_dict
             }
         return response
 
 class BetweenRounds(Page):
-    timeout_seconds = 30
     @staticmethod
-    def is_displayed(player): return player.round_number < C.NUM_ROUNDS
+    def get_timeout_seconds(player):
+        if player.round_number == C.NUM_PRACTICE_ROUNDS:
+            return None
+        return C.WAITING_LENGTH 
+       
     @staticmethod
-    def vars_for_template(player): return {'total_profit': sum([p.profit for p in player.in_all_rounds()])}
+    def is_displayed(player): 
+        return player.round_number < C.NUM_ROUNDS
+    
+    @staticmethod
+    def vars_for_template(player):
+        is_practice = player.round_number <= C.NUM_PRACTICE_ROUNDS
+        is_transition = player.round_number == C.NUM_PRACTICE_ROUNDS
+     
+        real_rounds = [p for p in player.in_all_rounds() if p.round_number > C.NUM_PRACTICE_ROUNDS]
+        total_profit = sum([p.profit for p in real_rounds])
+        
+        if is_practice:
+            display_round = f"Practice Round {player.round_number}"
+        else:
+            display_round = f"Round {player.round_number - C.NUM_PRACTICE_ROUNDS}"
 
+        return {
+            'is_practice': is_practice,
+            'is_transition': is_transition,
+            'round_profit': player.profit,
+            'total_profit': total_profit,
+            'display_round': display_round
+        }
+    
 class FinalResults(Page):
     @staticmethod
-    def is_displayed(player): return player.round_number == C.NUM_ROUNDS
+    def is_displayed(player): 
+        return player.round_number == C.NUM_ROUNDS
+    
     @staticmethod
-    def vars_for_template(player): return {'total_profit': sum([p.profit for p in player.in_all_rounds()])}
+    def vars_for_template(player): 
+        real_rounds = [p for p in player.in_all_rounds() if p.round_number > C.NUM_PRACTICE_ROUNDS]
+        return {'total_profit': sum([p.profit for p in real_rounds])}
 
-page_sequence = [ReadyToStart, Trading, BetweenRounds, FinalResults]
+def custom_export(players):
+    """
+    Exports a detailed row-by-row log of every single successful trade in the experiment,
+    including treatment variables, parameter values, and participant performance metrics.
+    """
+    # Header row for the CSV export
+    yield [
+        'session_code',
+        'treatment',
+        'round_number',
+        'is_practice',
+        'alpha',
+        'gamma',
+        'x_param',
+        'group_id',
+        'trade_id',
+        'timestamp',
+        'product_type',
+        'price',
+        'buyer_id_in_group',
+        'buyer_role_id',
+        'seller_id_in_group',
+        'seller_type',
+        'buyer_profit_from_trade',
+        'seller_profit_from_trade',
+    ]
+
+    # Retrieve all recorded trades across all groups
+    trades = Trade.filter()
+    for t in trades:
+        subsession = t.group.subsession
+        session = t.group.session
+        
+        # Determine treatment name and practice round status
+        treatment = session.config.get('treatment', 'baseline')
+        is_practice = subsession.round_number <= C.NUM_PRACTICE_ROUNDS
+
+        yield [
+            session.code,
+            treatment,
+            subsession.round_number,
+            is_practice,
+            subsession.alpha,
+            subsession.gamma,
+            subsession.x_param,
+            t.group.id_in_subsession,
+            t.id,
+            t.timestamp,
+            t.product_type,
+            t.price,
+            t.buyer.id_in_group,
+            t.buyer.buyer_id,
+            t.seller.id_in_group,
+            t.seller.seller_type,
+            t.buyer_profit,
+            t.seller_profit,
+        ]
+
+page_sequence = [Welcome, ReadyToStart, Trading, BetweenRounds, FinalResults]

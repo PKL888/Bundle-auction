@@ -1,14 +1,15 @@
 {{ block content }}
 <style>
     /* Full Page Screen Layout */
-    .otree-body { max-width: 100% !important; margin: 0; padding: 0 20px; }
+    .otree-body { max-width: 100% !important; margin: 0; padding: 0 10px; }
     .page-container {
         display: flex;
         flex-direction: column;
-        height: 95vh;
-        max-height: 95vh;
+        height: 98vh;
+        max-height: 98vh;
         overflow: hidden;
         font-family: Arial, sans-serif;
+        box-sizing: border-box;
     }
     
     /* Top Status Bar */
@@ -16,12 +17,12 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 15px 30px;
+        padding: 8px 15px;
         background-color: #f8f9fa;
-        border: 2px solid #ccc;
-        border-radius: 8px;
-        margin-bottom: 20px;
-        font-size: 1.3rem;
+        border: 1.5px solid #ccc;
+        border-radius: 6px;
+        margin-bottom: 10px;
+        font-size: 1rem;
         font-weight: bold;
         position: relative;
     }
@@ -34,8 +35,8 @@
     .markets-wrapper {
         display: flex;
         flex: 1;
-        gap: 30px;
-        justify-content: center; /* Centers perfectly if only 1 market, spaces out if 2 */
+        gap: 15px;
+        justify-content: center;
         overflow: hidden;
     }
     
@@ -43,32 +44,32 @@
         display: flex;
         flex-direction: column;
         flex: 1;
-        max-width: 700px;
-        border: 2px solid #bbb;
-        border-radius: 8px;
+        max-width: 650px;
+        border: 1.5px solid #bbb;
+        border-radius: 6px;
         background: #fff;
         overflow: hidden;
     }
 
     .market-header {
-        font-size: 1.3rem;
+        font-size: 1rem;
         font-weight: bold;
         text-align: center;
-        padding: 12px;
+        padding: 6px;
         background-color: #e9ecef;
-        border-bottom: 2px solid #ccc;
+        border-bottom: 1px solid #ccc;
         color: #333;
     }
 
     /* Temporary Trade Alert Styling */
     .trade-alert {
-        padding: 8px 15px;
-        border-radius: 6px;
+        padding: 4px 8px;
+        border-radius: 4px;
         background-color: #d4edda;
         color: #155724;
         border: 1px solid #c3e6cb;
         font-weight: bold;
-        font-size: 1.2rem;
+        font-size: 1rem;
         text-align: center;
         width: 90%;
         animation: fadeOut 4s forwards;
@@ -85,8 +86,9 @@
         display: flex;
         flex: 0 0 auto;
         background-color: #fdfdfd;
-        border-bottom: 2px solid #ccc;
-        font-size: 1.3rem;
+        border-bottom: 1px solid #ccc;
+        font-size: 1rem;
+        padding: 6px 0;
     }
 
     /* 3 Column Grid */
@@ -100,45 +102,18 @@
         display: flex;
         flex-direction: column;
         border-right: 1px solid #ddd;
+        min-height: 0; /* Ensures proper scroll behaviour on smaller screens */
     }
     .col:last-child { border-right: none; }
     
     .col-title {
-        font-size: 1.3rem;
+        font-size: 1rem;
         font-weight: bold;
         text-align: center;
-        padding: 10px;
+        padding: 6px;
         background: #fcfcfc;
         border-bottom: 1px solid #ddd;
     }
-
-    /* Action & Value Headers */
-    .input-section {
-        padding: 15px 10px;
-        text-align: center;
-        border-bottom: 1px solid #ddd;
-        background: #fdfdfd;
-        min-height: 85px; 
-    }
-    .input-section input {
-        width: 90px;
-        font-size: 1.3rem;
-        padding: 5px;
-        text-align: center;
-        margin-bottom: 8px;
-        border: 1px solid #aaa;
-        border-radius: 4px;
-    }
-    .input-section button {
-        font-size: 1.3rem;
-        font-weight: bold;
-        padding: 6px 20px;
-        cursor: pointer;
-        border: none;
-        border-radius: 4px;
-    }
-    .btn-submit-bid { background-color: #28a745; color: white; }
-    .btn-submit-ask { background-color: #dc3545; color: white; }
 
     /* Action Columns mapping to the Market Columns */
     .action-col {
@@ -147,54 +122,75 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        padding: 5px 10px;
-        border-right: 1px solid #ddd; /* Aligns with the border of the lists below */
+        padding: 2px 6px;
+        border-right: 1px solid #ddd;
     }
 
     .action-col:last-child {
         border-right: none;
     }
 
-    /* Inputs and Buttons matched to the container font size */
     .action-col input {
-        font-size: 1.3rem;
-        width: 110px;
-        padding: 2px;
+        font-size: 1rem;
+        width: 80px;
+        padding: 2px 4px;
         text-align: center;
-        margin-bottom: 5px;
+        margin-bottom: 4px;
         border: 1px solid #aaa;
         border-radius: 4px;
     }
 
     .action-col label {
         font-weight: bold;
+        font-size: 1rem;
         margin-bottom: 2px;
     }
 
     .action-col button {
-        font-size: 1.3rem;
+        font-size: 1rem;
         font-weight: bold;
-        padding: 4px 15px;
+        padding: 4px 12px;
         cursor: pointer;
         border: none;
         border-radius: 4px;
     }
 
-    /* Updated Middle Box for Value/Cost */
+    .btn-submit-bid { background-color: #28a745; color: white; }
+    .btn-submit-ask { background-color: #dc3545; color: white; }
+
+    /* Outlined Middle Box for Value/Cost */
     .mv-mc-box-horizontal {
         text-align: center;
         width: 100%;
-        padding: 5px 10px;
+        padding: 6px;
         border-radius: 6px;
         background: #e3f2fd;
         color: #0d47a1;
+        font-size: 1rem;
+        border: 2px solid #1565c0; /* High contrast outline */
+        box-shadow: 0 0 4px rgba(21, 101, 192, 0.15);
+        box-sizing: border-box;
     }
 
-    /* Lists */
+    .units-tracker {
+        margin-top: 4px;
+        font-size: 0.85rem;
+        font-weight: bold;
+        color: #333;
+        background-color: #e2e3e5;
+        border: 1px solid #d6d8db;
+        border-radius: 4px;
+        padding: 2px 6px;
+        text-align: center;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    /* Lists Area */
     .list-area {
         flex: 1;
-        overflow-y: hidden;
-        padding: 10px;
+        overflow-y: auto;
+        padding: 6px;
         margin: 0;
         list-style: none;
     }
@@ -202,9 +198,9 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 10px 12px;
-        margin-bottom: 6px;
-        font-size: 1.3rem;
+        padding: 5px 8px;
+        margin-bottom: 4px;
+        font-size: 1rem;
         border-radius: 4px;
         border: 1px solid #eee;
         background-color: #fafafa;
@@ -224,27 +220,27 @@
 
     /* Instant Action Buttons inside lists */
     .action-btn {
-        font-size: 1.3rem;
+        font-size: 1rem;
         font-weight: bold;
-        padding: 4px 12px;
+        padding: 2px 8px;
         cursor: pointer;
         border: none;
-        border-radius: 4px;
+        border-radius: 3px;
         color: white;
     }
     .btn-quick-buy { background-color: #28a745; }
     .btn-quick-sell { background-color: #dc3545; }
-
 </style>
 
 <div class="page-container">
     <!-- Top Status Bar -->
     <div class="top-bar">
-        <div>Round {{ player.round_number }}</div>
+        <div>Profit: $<span id="round_profit">{{ player.profit|to1 }}</span></div>
         <div style="color: #0056b3; position: absolute; left: 50%; transform: translateX(-50%);">
-            Role: {{ if player.is_buyer }}Buyer {{ player.buyer_id }}{{ else }}Seller (Type {{ player.seller_type }}){{ endif }}
+            <!-- Role: {{ if player.is_buyer }}Buyer {{ player.buyer_id }}{{ else }}Seller (Type {{ player.seller_type }}){{ endif }} -->
+            Role: {{ if player.is_buyer }}Buyer{{ else }}Seller{{ endif }}
         </div>
-        <div>Current Round Profit: $<span id="round_profit">{{ player.profit|to1 }}</span></div>
+        <div>{{ display_round }}</div>
     </div>
 
     <!-- Markets -->
@@ -253,14 +249,13 @@
         <div class="market-box">
             <div class="market-header">{{ p.label }}</div>
             
-            <!-- NEW: Unified Action Area Above Columns (3-Column Layout) -->
             <div class="market-actions">
                 
                 <!-- LEFT COL: Buyer Input -->
                 <div class="action-col">
                     {{ if player.is_buyer }}
                         <label for="input_bid_{{ p.safe_id }}">Offer Price:</label>
-                        <input type="number" id="input_bid_{{ p.safe_id }}" placeholder="$" min="1" step="1">
+                        <input type="number" id="input_bid_{{ p.safe_id }}" placeholder="$0.00" min="0.01" step="0.01">
                         <button type="button" class="btn-submit-bid" onclick="submitInputOrder('bid', '{{ p.id }}', '{{ p.safe_id }}')">Submit Bid</button>
                     {{ else }}
                         <div id="alert_sell_{{ p.safe_id }}" class="trade-alert" style="display: none;"></div>
@@ -270,8 +265,11 @@
                 <!-- MIDDLE COL: Next Value/Cost -->
                 <div class="action-col" style="padding: 10px;">
                     <div class="mv-mc-box-horizontal">
-                        <span style="font-weight: normal; color: #555; display: block;">Next {{ if player.is_buyer }}Value (MV){{ else }}Cost (MC){{ endif }}:</span>
+                        <span style="font-weight: bold; color: #555; display: block;">{{ if player.is_buyer }}Value{{ else }}Cost{{ endif }}:</span>
                         <strong>$<span id="marginal_{{ p.safe_id }}">--</span></strong>
+                    </div>
+                    <div class="units-tracker">
+                        Units Traded: <span id="units_count_{{ p.safe_id }}">0</span>
                     </div>
                 </div>
 
@@ -279,7 +277,7 @@
                 <div class="action-col">
                     {{ if not player.is_buyer }}
                         <label for="input_ask_{{ p.safe_id }}">Offer Price:</label>
-                        <input type="number" id="input_ask_{{ p.safe_id }}" placeholder="$" min="1" step="1">
+                        <input type="number" id="input_ask_{{ p.safe_id }}" placeholder="$0.00" min="0.01" step="0.01">
                         <button type="button" class="btn-submit-ask" onclick="submitInputOrder('ask', '{{ p.id }}', '{{ p.safe_id }}')">Submit Ask</button>
                     {{ else }}
                         <div id="alert_buy_{{ p.safe_id }}" class="trade-alert" style="display: none;"></div>
@@ -331,19 +329,29 @@
             .replace(/-+$/, '');            
     }
     
+    function getTradeCountForProduct(ptype, inventory) {
+        if (ptype === 'Product A') return inventory.trades_A;
+        if (ptype === 'Product B') return inventory.trades_B;
+        if (ptype === 'Package') return inventory.trades_Pkg;
+        if (ptype === 'Package 1') return inventory.trades_Pkg1;
+        if (ptype === 'Package 2') return inventory.trades_Pkg2;
+        return 0;
+    }
+
     // Core submission function used by both input boxes and quick-action buttons
     function submitSpecificOrder(action, price, pType, safeId) {
         let marginal = currentMarginals[safeId];
+        let numPrice = parseFloat(price);        
         
         if (marginal !== undefined) {
             if (isBuyer && price > marginal) {
                 // Buyer is offering more than their value
-                if (!confirm(`Warning: Your price of $${price} is higher than your current value of $${marginal.toFixed(1)}, which will result in a loss. Are you sure you want to proceed?`)) {
+                if (!confirm(`Warning: Your price of $${numPrice.toFixed(2)} is higher than your current value of $${marginal.toFixed(2)}, which will result in a loss. Are you sure you want to proceed?`)) {
                     return; // Cancels the trade if they click 'Cancel'
                 }
             } else if (!isBuyer && price < marginal) {
                 // Seller is offering less than their cost
-                if (!confirm(`Warning: Your price of $${price} is lower than your current cost of $${marginal.toFixed(1)}, which will result in a loss. Are you sure you want to proceed?`)) {
+                if (!confirm(`Warning: Your price of $${numPrice.toFixed(2)} is lower than your current cost of $${marginal.toFixed(2)}, which will result in a loss. Are you sure you want to proceed?`)) {
                     return; // Cancels the trade if they click 'Cancel'
                 }
             }
@@ -351,7 +359,7 @@
         
         liveSend({
             'action': action,
-            'price': parseInt(price),
+            'price': numPrice,
             'product_type': pType
         });
     }
@@ -359,12 +367,12 @@
     // Handles the manual input box submission
     function submitInputOrder(action, pType, safeId) {
         let inputEl = document.getElementById(`input_${action}_${safeId}`);
-        let price = Number(inputEl.value);
+        let price = parseFloat(inputEl.value);
         
-        if (!inputEl.value || !Number.isInteger(price) || price <= 0) {
-            return alert("Please enter a positive, whole number for the price.");
+        if (!inputEl.value || isNaN(price) || price <= 0) {
+            return alert("Please enter a valid positive price.");
         }
-        submitSpecificOrder(action, price, pType, safeId);
+        submitSpecificOrder(action, price.toFixed(2), pType, safeId);
         
         inputEl.value = '';
         inputEl.focus();
@@ -377,13 +385,16 @@
         }
 
         // Update top bar profit
-        document.getElementById('round_profit').innerText = data.inventory.profit.toFixed(1);
+        document.getElementById('round_profit').innerText = data.inventory.profit.toFixed(2);
         
         activeProducts.forEach(ptype => {
             let safeId = slugify(ptype);
 
             currentMarginals[safeId] = data.marginals[ptype];
-            document.getElementById('marginal_' + safeId).innerText = data.marginals[ptype].toFixed(1);
+            document.getElementById('marginal_' + safeId).innerText = data.marginals[ptype].toFixed(2);
+
+            let totalUnitsForProduct = getTradeCountForProduct(ptype, data.inventory);
+            document.getElementById('units_count_' + safeId).innerText = totalUnitsForProduct;
             
             // 1. Render Bids Column (Sorted Highest to Lowest)
             let bidsHTML = '';
@@ -400,7 +411,7 @@
                     bestBidFound = true; // Lock it so no other buttons are added
                 }
                 
-                bidsHTML += `<li class="list-item ${mineClass}"><span>$${bid.price}</span> ${btnHTML}</li>`;
+                bidsHTML += `<li class="list-item ${mineClass}"><span>$${bid.price.toFixed(2)}</span> ${btnHTML}</li>`;
             });
             document.getElementById('bids_' + safeId).innerHTML = bidsHTML;
             
@@ -419,7 +430,7 @@
                     bestAskFound = true; // Lock it so no other buttons are added
                 }
                 
-                asksHTML += `<li class="list-item ${mineClass}"><span>$${ask.price}</span> ${btnHTML}</li>`;
+                asksHTML += `<li class="list-item ${mineClass}"><span>$${ask.price.toFixed(2)}</span> ${btnHTML}</li>`;
             });
             document.getElementById('asks_' + safeId).innerHTML = asksHTML;
 
@@ -432,35 +443,33 @@
             } else {
                 productTrades.slice().reverse().forEach(trade => {
                     let mineClass = trade.is_mine ? 'my-trade' : '';
-                    tradesHTML += `<li class="list-item ${mineClass}" style="justify-content: center;">$${trade.price}</li>`;
+                    tradesHTML += `<li class="list-item ${mineClass}" style="justify-content: center;">$${trade.price.toFixed(2)}</li>`;
                 });
             }
             document.getElementById('trades_' + safeId).innerHTML = tradesHTML;
 
-let myTrades = productTrades.filter(t => t.is_mine);
+            let myTrades = productTrades.filter(t => t.is_mine);
             let currentTradeCount = myTrades.length;
 
             // Check if the player has a new trade in this market
             if (previousTradeCounts[safeId] !== undefined && currentTradeCount > previousTradeCounts[safeId]) {
-                let latestTrade = myTrades[myTrades.length - 1]; // Get the newest completed trade
+                let latestTrade = myTrades[myTrades.length - 1];
                 let alertEl;
 
                 if (isBuyer) {
                     alertEl = document.getElementById(`alert_buy_${safeId}`);
-                    if (alertEl) alertEl.innerText = `Success! 1 unit bought for $${latestTrade.price}`;
+                    if (alertEl) alertEl.innerText = `Success! Unit bought for $${latestTrade.price.toFixed(2)}`;
                 } else {
                     alertEl = document.getElementById(`alert_sell_${safeId}`);
-                    if (alertEl) alertEl.innerText = `Success! 1 unit sold for $${latestTrade.price}`;
+                    if (alertEl) alertEl.innerText = `Success! Unit sold for $${latestTrade.price.toFixed(2)}`;
                 }
 
-                // Restart the CSS animation and show the element safely
                 if (alertEl) {
                     alertEl.style.display = 'block';
                     alertEl.style.animation = 'none';
-                    alertEl.offsetHeight; // Trigger reflow to restart animation
+                    alertEl.offsetHeight;
                     alertEl.style.animation = null;
 
-                    // Hide it completely after the fade-out completes (4 seconds)
                     setTimeout(() => {
                         alertEl.style.display = 'none';
                     }, 4000);
