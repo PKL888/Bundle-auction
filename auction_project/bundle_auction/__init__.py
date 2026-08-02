@@ -10,8 +10,8 @@ class C(BaseConstants):
     NAME_IN_URL = 'bundle_auction'
     PLAYERS_PER_GROUP = None
 
-    TRADING_LENGTH = 180
-    WAITING_LENGTH = 30
+    TRADING_LENGTH = 20
+    WAITING_LENGTH = 5
 
     NUM_PRACTICE_ROUNDS = 1
     NUM_REAL_ROUNDS = 4
@@ -415,60 +415,114 @@ class FinalResults(Page):
 
 def custom_export(players):
     """
-    Exports a detailed row-by-row log of every single successful trade in the experiment,
-    including treatment variables, parameter values, and participant performance metrics.
+    Exports a single CSV file containing two distinct sections:
+    SECTION 1: Player Profit Summary Matrix (Sorted by session code & player ID)
+    SECTION 2: Detailed Event Log (Sorted by session code, round, and timestamp)
     """
-    # Header row for the CSV export
-    yield [
-        'session_code',
-        'treatment',
-        'round_number',
-        'is_practice',
-        'alpha',
-        'gamma',
-        'x_param',
-        'group_id',
-        'trade_id',
-        'timestamp',
-        'product_type',
-        'price',
-        'buyer_id_in_group',
-        'buyer_role_id',
-        'seller_id_in_group',
-        'seller_type',
-        'buyer_profit_from_trade',
-        'seller_profit_from_trade',
-    ]
+    valid_sessions = {p.session for p in players}
 
-    # Retrieve all recorded trades across all groups
-    trades = Trade.filter()
-    for t in trades:
-        subsession = t.group.subsession
-        session = t.group.session
+    # =========================================================
+    # SECTION 1: PLAYER PROFIT SUMMARY
+    # =========================================================
+    yield ['=== SECTION 1: PLAYER PROFIT SUMMARY ===']
+    
+    profit_headers = ['session_code', 'participant_code', 'player_id_in_group']
+    for r in range(1, C.NUM_PRACTICE_ROUNDS + 1):
+        profit_headers.append(f'practice_round_{r}_profit')
+    for r in range(1, C.NUM_REAL_ROUNDS + 1):
+        profit_headers.append(f'real_round_{r}_profit')
+    profit_headers.append('total_real_profit')
+    
+    yield profit_headers
+
+    # Gather unique participants across valid sessions
+    participants = list(set(p.participant for p in players if p.session in valid_sessions))
+
+    # Sort participants by session code, then player group ID
+    participants.sort(key=lambda part: (part.session.code, part.get_players()[0].id_in_group))
+
+    for part in participants:
+        player_in_rounds = part.get_players()
+        player_in_rounds.sort(key=lambda x: x.round_number)
         
-        # Determine treatment name and practice round status
-        treatment = session.config.get('treatment', 'baseline')
-        is_practice = subsession.round_number <= C.NUM_PRACTICE_ROUNDS
-
-        yield [
-            session.code,
-            treatment,
-            subsession.round_number,
-            is_practice,
-            subsession.alpha,
-            subsession.gamma,
-            subsession.x_param,
-            t.group.id_in_subsession,
-            t.id,
-            t.timestamp,
-            t.product_type,
-            t.price,
-            t.buyer.id_in_group,
-            t.buyer.buyer_id,
-            t.seller.id_in_group,
-            t.seller.seller_type,
-            t.buyer_profit,
-            t.seller_profit,
+        row = [
+            part.session.code,
+            part.code,
+            player_in_rounds[0].id_in_group
         ]
 
-page_sequence = [Welcome, ReadyToStart, Trading, BetweenRounds, FinalResults]
+        practice_profit = 0.0
+        real_profit = 0.0
+
+        for p in player_in_rounds:
+            row.append(p.profit)
+            if p.round_number <= C.NUM_PRACTICE_ROUNDS:
+                practice_profit += p.profit
+            else:
+                real_profit += p.profit
+
+        row.append(real_profit)
+        yield row
+
+    # Space between sections
+    yield []
+    yield []
+
+    # =========================================================
+    # SECTION 2: EVENT LOG (Offers & Trades)
+    # =========================================================
+    yield ['=== SECTION 2: EVENT LOG (OFFERS & TRADES) ===']
+    yield [
+        'session_code', 'treatment', 'round_number', 'is_practice',
+        'alpha', 'gamma', 'x_param', 'group_id', 'event_type',
+        'timestamp', 'product_type', 'price', 'is_bid', 'player_id',
+        'trade_buyer_id', 'trade_seller_id', 'trade_buyer_profit',
+        'trade_seller_profit'
+    ]
+
+    event_rows = []
+
+    # Process Orders
+    for o in Order.filter():
+        if o.group.session not in valid_sessions:
+            continue
+        subsession = o.group.subsession
+        event_rows.append([
+            o.group.session.code,
+            o.group.session.config.get('treatment', 'baseline'),
+            subsession.round_number,
+            subsession.round_number <= C.NUM_PRACTICE_ROUNDS,
+            subsession.alpha, subsession.gamma, subsession.x_param,
+            o.group.id_in_subsession, 'Offer', o.timestamp,
+            o.product_type, o.price, o.is_bid, o.player.id_in_group,
+            '', '', '', ''
+        ])
+
+    # Process Trades
+    for t in Trade.filter():
+        if t.group.session not in valid_sessions:
+            continue
+        subsession = t.group.subsession
+        event_rows.append([
+            t.group.session.code,
+            t.group.session.config.get('treatment', 'baseline'),
+            subsession.round_number,
+            subsession.round_number <= C.NUM_PRACTICE_ROUNDS,
+            subsession.alpha, subsession.gamma, subsession.x_param,
+            t.group.id_in_subsession, 'Trade', t.timestamp,
+            t.product_type, t.price, '', '',
+            t.buyer.id_in_group, t.seller.id_in_group,
+            t.buyer_profit, t.seller_profit
+        ])
+
+    # Sort Event Log rows:
+    # 1. session_code (Index 0)
+    # 2. round_number (Index 2)
+    # 3. timestamp (Index 9)
+    event_rows.sort(key=lambda r: (r[0], r[2], r[9]))
+
+    for row in event_rows:
+        yield row
+
+# page_sequence = [Welcome, ReadyToStart, Trading, BetweenRounds, FinalResults]
+page_sequence = [ReadyToStart, Trading, BetweenRounds, FinalResults]
