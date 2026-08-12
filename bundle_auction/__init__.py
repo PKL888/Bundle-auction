@@ -668,8 +668,8 @@ def custom_export(players):
 
     for g in valid_groups:
         group_players = g.get_players()
-        buyer_profit = sum(p.profit for p in group_players if p.is_buyer and p in real_rounds)
-        seller_profit = sum(p.profit for p in group_players if not p.is_buyer and p in real_rounds)
+        buyer_profit = sum(p.profit for p in group_players if p.is_buyer)
+        seller_profit = sum(p.profit for p in group_players if not p.is_buyer)
         
         # Directly query the Trade model to accurately count unique transactions
         group_trades = Trade.filter(group=g)
