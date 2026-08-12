@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Live Participant Grid Monitor</title>
+    <style>
+        body { margin: 10px; background: #222; color: #fff; font-family: sans-serif; }
+        h1 { text-align: center; margin-bottom: 10px; font-size: 1.2rem; }
+        
+        /* 4 columns x 2 rows grid layout for 8 participants */
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            height: 90vh;
+        }
+        
+        .card {
+            display: flex;
+            flex-direction: column;
+            background: #333;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid #555;
+        }
+        
+        .card-header {
+            padding: 4px 8px;
+            background: #444;
+            font-size: 0.85rem;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        iframe {
+            width: 100%;
+            flex: 1;
+            border: none;
+            /* SAFEGUARD: Disables all mouse interactions so it is pure view-only */
+            pointer-events: none; 
+        }
+    </style>
+</head>
+<body>
+    <h1>Live Session Grid Monitor</h1>
+    <div class="grid-container">
+        <!-- Replace the src URLs below with your active session/room participant URLs -->
+        <div class="card">
+            <div class="card-header">Seat 01</div>
+            <iframe src="http://localhost:8000/room/econ_lab/?participant_label=Seat01"></iframe>
+        </div>
+        <div class="card">
+            <div class="card-header">Seat 02</div>
+            <iframe src="http://localhost:8000/room/econ_lab/?participant_label=Seat02"></iframe>
+        </div>
+        <div class="card">
+            <div class="card-header">Seat 03</div>
+            <iframe src="http://localhost:8000/room/econ_lab/?participant_label=Seat03"></iframe>
+        </div>
+        <div class="card">
+            <div class="card-header">Seat 04</div>
+            <iframe src="http://localhost:8000/room/econ_lab/?participant_label=Seat04"></iframe>
+        </div>
+        <div class="card">
+            <div class="card-header">Seat 05</div>
+            <iframe src="http://localhost:8000/room/econ_lab/?participant_label=Seat05"></iframe>
+        </div>
+        <div class="card">
+            <div class="card-header">Seat 06</div>
+            <iframe src="http://localhost:8000/room/econ_lab/?participant_label=Seat06"></iframe>
+        </div>
+        <div class="card">
+            <div class="card-header">Seat 07</div>
+            <iframe src="http://localhost:8000/room/econ_lab/?participant_label=Seat07"></iframe>
+        </div>
+        <div class="card">
+            <div class="card-header">Seat 08</div>
+            <iframe src="http://localhost:8000/room/econ_lab/?participant_label=Seat08"></iframe>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,32 @@
+{{ block title }}
+    {{ if is_transition }}
+        Practice Complete
+    {{ else }}
+        Round Complete
+    {{ endif }}
+{{ endblock }}
+
+{{ block content }}
+    <div style="text-align: center; margin-top: 50px;">
+        <h3>{{ display_round }} has concluded.</h3>
+        
+        {{ if is_practice }}
+            <p style="font-size: 1.2em;">Your profit from this practice round is: <strong>{{ round_profit|to2 }} experimental points</strong></p>
+            <p style="color: #666;"><em>(Note: Practice profits do not count toward your final earnings from the experiment)</em></p>
+        {{ else }}
+            <p style="font-size: 1.2em;">Your total profit across all trading rounds so far is: <strong>{{ total_profit|to2 }} experimental points</strong></p>
+        {{ endif }} 
+
+        <br>
+
+        {{ if is_transition }}
+            <div class="alert alert-info d-inline-block mt-3" style="max-width: 600px;">
+                The practice rounds are now complete. Please wait for the experimenter's instructions before clicking <strong>Next</strong> to begin the real experiment.
+            </div>
+            <br><br>
+            {{ next_button }}
+        {{ else }}
+            <p><em>The next round will start automatically in 30 seconds.</em></p>
+        {{ endif }}    
+    </div>
+{{ endblock }}

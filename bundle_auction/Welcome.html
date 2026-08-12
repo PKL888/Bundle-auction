@@ -1,0 +1,58 @@
+{{ block title }}
+    Welcome to this experiment on economic decision-making
+{{ endblock }}
+
+{{ block content }}
+    <div style="max-width: 800px; margin: 0 auto; line-height: 1.6; font-family: Arial, sans-serif;">
+        
+        <p>
+            The experiment consists of a series of <strong>trading rounds</strong>. You will be randomly assigned a role as either a <strong>Buyer</strong> or a <strong>Seller</strong> for the entire experiment. Within the group of participants in this experiment there will be an equal number of Buyers and Sellers.
+        </p>
+
+        <div style="border: 2px solid #007bff; border-radius: 6px; padding: 20px; background-color: #f8fbff; margin: 20px 0;">
+            <h5 style="margin-top: 0; color: #0056b3;">Market rules:</h4>
+
+            {{ if treatment == 'baseline' }}
+                <p>
+                    You will be trading products representing two distinct goods, labelled as <strong>Product A</strong> and <strong>Product B</strong>. Each type of product is bought and sold in separate markets. You can choose to trade either product at any point during the round.
+                </p>
+            {{ endif }}
+
+            {{ if treatment == 'single_package' }}
+                <p>
+                    You will be trading packages containing a combination of two distinct goods, labelled as Product A and Product B. Each <strong>Package</strong> contains exactly 1 unit of each product (1:1 ratio).
+                </p>
+            {{ endif }}
+
+            {{ if treatment == 'package_menu' }}
+                <p>
+                    You will be trading packages containing a combination of two distinct goods, labelled as Product A and Product B. Each type of package is bought and sold in separate markets. You can choose to trade either package at any point during the round. Note that each package contains a different amount of each product:
+                </p>
+                <ul>
+                    <li><strong>Package 1</strong> contains exactly {{ x_weight }} units of Product A and 1 unit of Product B ({{ x_weight }}:1 ratio).</li>
+                    <li><strong>Package 2</strong> contains exactly 1 unit of Product A and {{ x_weight }} units of Product B (1:{{ x_weight }} ratio).</li>
+                </ul>
+            {{ endif }}
+        </div>
+
+        <div style="border: 2px solid #007bff; border-radius: 6px; padding: 15px; background-color: #f9f9f9; margin: 20px 0;">
+            <h5 style="margin-top: 0; color: #0056b3;">Trading guidelines:</h5>
+            <p>
+                Your primary objective as either Buyer or Seller is to <strong>maximise your total profit</strong>.
+            </p>
+            <ul>
+                <li style="margin-bottom: 8px;">
+                    As a <strong>Seller</strong>, you should sell units at a price <strong>higher</strong> than your <strong>Cost</strong>.
+                </li>
+                <li>
+                    As a <strong>Buyer</strong>, you should purchase units at a price <strong>lower</strong> than your <strong>Value</strong>.
+                </li>
+            </ul>
+        </div>
+        
+        <div style="text-align: right; margin-top: 30px;">
+            {{ next_button }}
+        </div>
+        
+    </div>
+{{ endblock }}
