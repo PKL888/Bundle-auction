@@ -17,7 +17,7 @@ class C(BaseConstants):
     NUM_REAL_ROUNDS = 4
     NUM_ROUNDS = NUM_PRACTICE_ROUNDS + NUM_REAL_ROUNDS
     
-    ALL_PRODUCTS = ['Product A', 'Product B', 'Package', 'Package 1', 'Package 2']    
+    ALL_PRODUCTS = ['Product A', 'Product B', 'Package', 'Package 1', 'Package 2']
 
     # Heterogeneous cost parameters (alpha, gamma)
     PARAMETERS = [
@@ -29,8 +29,8 @@ class C(BaseConstants):
     REPETITIONS = int(NUM_REAL_ROUNDS / 4)
 
     # Fixed benefit parameters
-    OMEGA = 15.0
-    THETA = 0.5
+    OMEGA = 10.0
+    THETA = 0.2
 
 class Subsession(BaseSubsession):
     alpha = models.FloatField()
@@ -77,7 +77,7 @@ def creating_session(subsession: Subsession):
                 seller_count += 1
 
 class Group(BaseGroup):
-    pass
+    start_timestamp = models.FloatField(initial=0.0)
 
 class Player(BasePlayer):
     is_buyer = models.BooleanField()
@@ -196,7 +196,10 @@ class Welcome(Page):
         }
 
 class ReadyToStart(WaitPage):
-    pass
+    @staticmethod
+    def after_all_players_arrive(group: Group):
+        # Record the exact time the round starts
+        group.start_timestamp = time.time()
 
 class Trading(Page):
     timeout_seconds = C.TRADING_LENGTH
@@ -247,7 +250,11 @@ class Trading(Page):
                 {'id': 'Product B', 'safe_id': 'product-b', 'label': 'Product B'}
             ]
             
-        return dict(active_products=active_products, is_buyer=player.is_buyer)
+        return dict(
+            active_products=active_products, 
+            is_buyer=player.is_buyer, 
+            is_practice=(player.round_number <= C.NUM_PRACTICE_ROUNDS)
+        )
     
     @staticmethod
     def live_method(player, data):
@@ -371,6 +378,13 @@ class Trading(Page):
             }
         return response
 
+    @staticmethod
+    def before_next_page(player, timeout_happened):
+        if player.round_number > C.NUM_PRACTICE_ROUNDS:
+            player.payoff = player.profit
+        else:
+            player.payoff = 0
+
 class BetweenRounds(Page):
     @staticmethod
     def get_timeout_seconds(player):
@@ -415,40 +429,54 @@ class FinalResults(Page):
 
 def custom_export(players):
     """
-    Exports a single CSV file containing two distinct sections:
-    SECTION 1: Player Profit Summary Matrix (Sorted by session code & player ID)
-    SECTION 2: Detailed Event Log (Sorted by session code, round, and timestamp)
+    Exports a single CSV file containing five distinct sections:
+    SECTION 1: Player Profit Summary Matrix 
+    SECTION 2: Detailed Event Log (Offers & Trades) with Elapsed Time
+    SECTION 3: Market Convergence (Sequential Trade Prices per Market)
+    SECTION 4: Player Trade Counts & Inventory Outcomes
+    SECTION 5: Round-Level Market Summaries (Profits & Total Trade Volumes)
     """
     valid_sessions = {p.session for p in players}
 
     # =========================================================
-    # SECTION 1: PLAYER PROFIT SUMMARY
+    # SECTION 1: PLAYER PROFIT SUMMARY 
     # =========================================================
     yield ['=== SECTION 1: PLAYER PROFIT SUMMARY ===']
     
-    profit_headers = ['session_code', 'participant_code', 'player_id_in_group']
+    profit_headers = [
+        'session_code', 'treatment', 'participant_code', 'player_id_in_group', 
+        'is_buyer', 'buyer_id', 'seller_type'
+    ]
+    
     for r in range(1, C.NUM_PRACTICE_ROUNDS + 1):
         profit_headers.append(f'practice_round_{r}_profit')
+        
     for r in range(1, C.NUM_REAL_ROUNDS + 1):
         profit_headers.append(f'real_round_{r}_profit')
-    profit_headers.append('total_real_profit')
+        
+    profit_headers.extend(['total_real_profit', 'total_payoff_AUD'])
     
     yield profit_headers
 
-    # Gather unique participants across valid sessions
     participants = list(set(p.participant for p in players if p.session in valid_sessions))
-
-    # Sort participants by session code, then player group ID
     participants.sort(key=lambda part: (part.session.code, part.get_players()[0].id_in_group))
 
     for part in participants:
         player_in_rounds = part.get_players()
         player_in_rounds.sort(key=lambda x: x.round_number)
         
+        first_p = player_in_rounds[0]
+        session = first_p.session
+        treatment = session.config.get('treatment', 'baseline')
+        
         row = [
-            part.session.code,
+            session.code,
+            treatment,
             part.code,
-            player_in_rounds[0].id_in_group
+            first_p.id_in_group,
+            first_p.is_buyer,
+            first_p.buyer_id,
+            first_p.seller_type
         ]
 
         practice_profit = 0.0
@@ -456,15 +484,18 @@ def custom_export(players):
 
         for p in player_in_rounds:
             row.append(p.profit)
+            
             if p.round_number <= C.NUM_PRACTICE_ROUNDS:
                 practice_profit += p.profit
             else:
                 real_profit += p.profit
 
-        row.append(real_profit)
+        # Call the method with () and convert the resulting Currency object to a float
+        payoff_aud = float(part.payoff_plus_participation_fee())
+
+        row.extend([real_profit, payoff_aud])
         yield row
 
-    # Space between sections
     yield []
     yield []
 
@@ -475,54 +506,193 @@ def custom_export(players):
     yield [
         'session_code', 'treatment', 'round_number', 'is_practice',
         'alpha', 'gamma', 'x_param', 'group_id', 'event_type',
-        'timestamp', 'product_type', 'price', 'is_bid', 'player_id',
-        'trade_buyer_id', 'trade_seller_id', 'trade_buyer_profit',
-        'trade_seller_profit'
+        'timestamp', 'elapsed_time_seconds', 'product_type', 'price', 
+        'is_bid', 'player_id', 'trade_buyer_id', 'trade_seller_id', 
+        'trade_buyer_profit', 'trade_seller_profit'
     ]
 
     event_rows = []
 
-    # Process Orders
     for o in Order.filter():
         if o.group.session not in valid_sessions:
             continue
         subsession = o.group.subsession
+        
+        # Calculate elapsed time if start_timestamp exists
+        start_time = o.group.field_maybe_none('start_timestamp')
+        elapsed = (o.timestamp - start_time) if start_time else 0.0
+
         event_rows.append([
             o.group.session.code,
             o.group.session.config.get('treatment', 'baseline'),
             subsession.round_number,
             subsession.round_number <= C.NUM_PRACTICE_ROUNDS,
             subsession.alpha, subsession.gamma, subsession.x_param,
-            o.group.id_in_subsession, 'Offer', o.timestamp,
+            o.group.id_in_subsession, 'Offer', o.timestamp, elapsed,
             o.product_type, o.price, o.is_bid, o.player.id_in_group,
             '', '', '', ''
         ])
 
-    # Process Trades
     for t in Trade.filter():
         if t.group.session not in valid_sessions:
             continue
         subsession = t.group.subsession
+        
+        # Calculate elapsed time if start_timestamp exists
+        start_time = t.group.field_maybe_none('start_timestamp')
+        elapsed = (t.timestamp - start_time) if start_time else 0.0
+
         event_rows.append([
             t.group.session.code,
             t.group.session.config.get('treatment', 'baseline'),
             subsession.round_number,
             subsession.round_number <= C.NUM_PRACTICE_ROUNDS,
             subsession.alpha, subsession.gamma, subsession.x_param,
-            t.group.id_in_subsession, 'Trade', t.timestamp,
+            t.group.id_in_subsession, 'Trade', t.timestamp, elapsed,
             t.product_type, t.price, '', '',
             t.buyer.id_in_group, t.seller.id_in_group,
             t.buyer_profit, t.seller_profit
         ])
 
-    # Sort Event Log rows:
-    # 1. session_code (Index 0)
-    # 2. round_number (Index 2)
-    # 3. timestamp (Index 9)
+    # Sort primarily by timestamp (index 9) to maintain chronological order
     event_rows.sort(key=lambda r: (r[0], r[2], r[9]))
 
     for row in event_rows:
         yield row
+        
+    yield []
+    yield []
+
+    # =========================================================
+    # SECTION 3: MARKET CONVERGENCE (Trade Prices)
+    # =========================================================
+    yield ['=== SECTION 3: MARKET CONVERGENCE (TRADE PRICES) ===']
+    yield [
+        'session_code', 'treatment', 'round_number', 'is_practice', 
+        'product_type', 'ordered_trade_prices'
+    ]
+
+    trades_by_market = {}
+    
+    for t in Trade.filter():
+        if t.group.session not in valid_sessions:
+            continue
+            
+        sess_code = t.group.session.code
+        treatment = t.group.session.config.get('treatment', 'baseline')
+        rnd = t.group.subsession.round_number
+        is_prac = rnd <= C.NUM_PRACTICE_ROUNDS
+        ptype = t.product_type
+        
+        key = (sess_code, treatment, rnd, is_prac, ptype)
+        if key not in trades_by_market:
+            trades_by_market[key] = []
+            
+        trades_by_market[key].append((t.timestamp, t.price))
+
+    for key in sorted(trades_by_market.keys()):
+        sorted_trades = sorted(trades_by_market[key], key=lambda x: x[0])
+        prices_str = ", ".join([str(price) for ts, price in sorted_trades])
+        
+        yield [
+            key[0], key[1], key[2], key[3], key[4],
+            prices_str
+        ]
+
+    yield []
+    yield []
+
+    # =========================================================
+    # SECTION 4: PLAYER TRADE COUNTS & INVENTORY
+    # =========================================================
+    yield ['=== SECTION 4: PLAYER TRADE COUNTS & INVENTORY ===']
+    yield [
+        'session_code', 'treatment', 'round_number', 'is_practice', 
+        'participant_code', 'player_id_in_group', 'is_buyer', 'buyer_id', 'seller_type', 
+        'alpha', 'gamma', 'x_param',
+        'trades_A', 'trades_B', 'trades_Pkg', 'trades_Pkg1', 'trades_Pkg2',
+        'underlying_qa', 'underlying_qb', 'displayed_qa', 'displayed_qb'
+    ]
+
+    all_players = [p for p in players if p.session in valid_sessions]
+    all_players.sort(key=lambda p: (p.session.code, p.round_number, p.id_in_group))
+    
+    for p in all_players:
+        subsession = p.subsession
+        yield [
+            p.session.code,
+            p.session.config.get('treatment', 'baseline'),
+            p.round_number,
+            p.round_number <= C.NUM_PRACTICE_ROUNDS,
+            p.participant.code,
+            p.id_in_group,
+            p.is_buyer,
+            p.buyer_id,
+            p.seller_type,
+            subsession.alpha,
+            subsession.gamma,
+            subsession.x_param,
+            p.trades_A,
+            p.trades_B,
+            p.trades_Pkg,
+            p.trades_Pkg1,
+            p.trades_Pkg2,
+            p.underlying_qa,
+            p.underlying_qb,
+            p.displayed_qa,
+            p.displayed_qb
+        ]
+
+    yield []
+    yield []
+
+    # =========================================================
+    # SECTION 5: ROUND-LEVEL MARKET SUMMARIES
+    # =========================================================
+    yield ['=== SECTION 5: ROUND-LEVEL MARKET SUMMARIES ===']
+    yield [
+        'session_code', 'treatment', 'round_number', 'is_practice', 'group_id',
+        'total_market_buyer_profit', 'total_market_seller_profit',
+        'total_trades_A', 'total_trades_B', 'total_trades_Pkg', 
+        'total_trades_Pkg1', 'total_trades_Pkg2'
+    ]
+
+    # Gather all unique groups directly from the provided players list
+    unique_groups = {p.group for p in players if p.session in valid_sessions}
+    
+    # Sort them chronologically
+    valid_groups = sorted(
+        list(unique_groups), 
+        key=lambda x: (x.session.code, x.round_number, x.id_in_subsession)
+    )
+
+    for g in valid_groups:
+        group_players = g.get_players()
+        buyer_profit = sum(p.profit for p in group_players if p.is_buyer and p in real_rounds)
+        seller_profit = sum(p.profit for p in group_players if not p.is_buyer and p in real_rounds)
+        
+        # Directly query the Trade model to accurately count unique transactions
+        group_trades = Trade.filter(group=g)
+        trades_A = sum(1 for t in group_trades if t.product_type == 'Product A')
+        trades_B = sum(1 for t in group_trades if t.product_type == 'Product B')
+        trades_Pkg = sum(1 for t in group_trades if t.product_type == 'Package')
+        trades_Pkg1 = sum(1 for t in group_trades if t.product_type == 'Package 1')
+        trades_Pkg2 = sum(1 for t in group_trades if t.product_type == 'Package 2')
+        
+        yield [
+            g.session.code,
+            g.session.config.get('treatment', 'baseline'),
+            g.round_number,
+            g.round_number <= C.NUM_PRACTICE_ROUNDS,
+            g.id_in_subsession,
+            buyer_profit,
+            seller_profit,
+            trades_A,
+            trades_B,
+            trades_Pkg,
+            trades_Pkg1,
+            trades_Pkg2
+        ]
 
 # page_sequence = [Welcome, ReadyToStart, Trading, BetweenRounds, FinalResults]
 page_sequence = [ReadyToStart, Trading, BetweenRounds, FinalResults]

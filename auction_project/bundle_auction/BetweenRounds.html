@@ -11,10 +11,10 @@
         <h3>{{ display_round }} has concluded.</h3>
         
         {{ if is_practice }}
-            <p style="font-size: 1.2em;">Your profit for this practice round was: <strong>${{ round_profit|to2 }}</strong></p>
+            <p style="font-size: 1.2em;">Your profit from this practice round is: <strong>{{ round_profit|to2 }} experimental points</strong></p>
             <p style="color: #666;"><em>(Note: Practice profits do not count toward your final earnings from the experiment)</em></p>
         {{ else }}
-            <p style="font-size: 1.2em;">Your total accumulated profit so far is: <strong>${{ total_profit|to2 }}</strong></p>
+            <p style="font-size: 1.2em;">Your total profit across all trading rounds so far is: <strong>{{ total_profit|to2 }} experimental points</strong></p>
         {{ endif }} 
 
         <br>

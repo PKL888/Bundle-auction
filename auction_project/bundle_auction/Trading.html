@@ -316,7 +316,8 @@
     const isBuyer = js_vars.is_buyer;
     const productsData = js_vars.active_products;
     const activeProducts = productsData.map(p => p.id);
-
+    const isPractice = js_vars.is_practice;
+    
     let previousTradeCounts = {};
     let currentMarginals = {};
 
@@ -343,7 +344,7 @@
         let marginal = currentMarginals[safeId];
         let numPrice = parseFloat(price);        
         
-        if (marginal !== undefined) {
+        if (marginal !== undefined && isPractice) {
             if (isBuyer && price > marginal) {
                 // Buyer is offering more than their value
                 if (!confirm(`Warning: Your price of $${numPrice.toFixed(2)} is higher than your current value of $${marginal.toFixed(2)}, which will result in a loss. Are you sure you want to proceed?`)) {

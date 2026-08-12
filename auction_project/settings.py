@@ -30,8 +30,16 @@ SESSION_CONFIGS = [
 # e.g. self.session.config['participation_fee']
 
 SESSION_CONFIG_DEFAULTS = dict(
-    real_world_currency_per_point=0.01, participation_fee=10.00, doc=""
+    real_world_currency_per_point=1/30, participation_fee=10.00, doc=""
 )
+
+ROOMS = [
+    dict(
+        name='econ_lab',
+        display_name='CUBES Lab',
+        participant_label_file='_rooms/econ_lab.txt',
+    ),
+]
 
 PARTICIPANT_FIELDS = []
 SESSION_FIELDS = []
