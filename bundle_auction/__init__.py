@@ -10,10 +10,10 @@ class C(BaseConstants):
     NAME_IN_URL = 'bundle_auction'
     PLAYERS_PER_GROUP = None
 
-    TRADING_LENGTH = 20
-    WAITING_LENGTH = 5
+    TRADING_LENGTH = 60
+    WAITING_LENGTH = 15
 
-    NUM_PRACTICE_ROUNDS = 1
+    NUM_PRACTICE_ROUNDS = 2
     NUM_REAL_ROUNDS = 4
     NUM_ROUNDS = NUM_PRACTICE_ROUNDS + NUM_REAL_ROUNDS
     
@@ -694,5 +694,5 @@ def custom_export(players):
             trades_Pkg2
         ]
 
-# page_sequence = [Welcome, ReadyToStart, Trading, BetweenRounds, FinalResults]
-page_sequence = [ReadyToStart, Trading, BetweenRounds, FinalResults]
+page_sequence = [Welcome, ReadyToStart, Trading, BetweenRounds, FinalResults]
+# page_sequence = [ReadyToStart, Trading, BetweenRounds, FinalResults]
