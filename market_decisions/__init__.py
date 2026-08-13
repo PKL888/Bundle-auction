@@ -694,5 +694,5 @@ def custom_export(players):
             trades_Pkg2
         ]
 
-page_sequence = [Welcome, ReadyToStart, Trading, BetweenRounds, FinalResults]
-# page_sequence = [ReadyToStart, Trading, BetweenRounds, FinalResults]
+# page_sequence = [Welcome, ReadyToStart, Trading, BetweenRounds, FinalResults]
+page_sequence = [ReadyToStart, Trading, BetweenRounds, FinalResults]

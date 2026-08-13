@@ -1,0 +1,38 @@
+{{ block title }}
+    Comprehension quiz
+{{ endblock }}
+
+{{ block content }}
+    <div style="max-width: 800px; margin: 0 auto; line-height: 1.6; font-family: Arial, sans-serif;">
+        
+        <div style="border: 2px solid #007bff; border-radius: 6px; padding: 20px; background-color: #f8fbff; margin: 20px 0;">
+            <h5 style="margin-top: 0; color: #0056b3;">Instructions</h5>
+            <p>
+                Please answer the comprehension questions below to verify your understanding of the experimental rules. 
+                If any questions are answered incorrectly, you will be prompted to re-attempt only those specific questions until all are answered correctly.
+            </p>
+            <p style="margin-bottom: 0;">
+                <strong>Progress:</strong> Passed {{ completed_count }} / {{ total_count }} Questions
+            </p>
+        </div>
+
+        {{ if is_retry }}
+            <div style="border: 2px solid #dc3545; border-radius: 6px; padding: 15px; background-color: #fdf2f2; margin: 20px 0; color: #dc3545;">
+                <strong>Some answers were incorrect!</strong> Please re-evaluate the remaining question(s) below.
+            </div>
+        {{ endif }}
+
+        <div style="border: 2px solid #ccc; border-radius: 6px; padding: 20px; background-color: #f9f9f9; margin: 20px 0;">
+            {{ for field in form }}
+                <div style="margin-bottom: 25px;">
+                    {{ formfield field }}
+                </div>
+            {{ endfor }}
+        </div>
+
+        <div style="text-align: right; margin-top: 30px;">
+            {{ next_button }}
+        </div>
+        
+    </div>
+{{ endblock }}
