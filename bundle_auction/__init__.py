@@ -7,7 +7,7 @@ Multi-attribute continuous double auction with dynamic marginal costs and values
 """
 
 class C(BaseConstants):
-    NAME_IN_URL = 'bundle_auction'
+    NAME_IN_URL = 'econ_lab'
     PLAYERS_PER_GROUP = None
 
     TRADING_LENGTH = 60
