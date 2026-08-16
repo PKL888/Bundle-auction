@@ -3,56 +3,63 @@
 {{ endblock }}
 
 {{ block content }}
-    <div style="max-width: 800px; margin: 0 auto; line-height: 1.6; font-family: Arial, sans-serif;">
-        
-        <p>
-            The experiment consists of a series of <strong>trading rounds</strong>. You will be randomly assigned a role as either a <strong>Buyer</strong> or a <strong>Seller</strong> for the entire experiment. Within the group of participants in this experiment there will be an equal number of Buyers and Sellers.
-        </p>
-
-        <div style="border: 2px solid #007bff; border-radius: 6px; padding: 20px; background-color: #f8fbff; margin: 20px 0;">
-            <h5 style="margin-top: 0; color: #0056b3;">Market rules:</h4>
-
-            {{ if treatment == 'baseline' }}
-                <p>
-                    You will be trading products representing two distinct goods, labelled as <strong>Product A</strong> and <strong>Product B</strong>. Each type of product is bought and sold in separate markets. You can choose to trade either product at any point during the round.
-                </p>
-            {{ endif }}
-
-            {{ if treatment == 'single_package' }}
-                <p>
-                    You will be trading packages containing a combination of two distinct goods, labelled as Product A and Product B. Each <strong>Package</strong> contains exactly 1 unit of each product (1:1 ratio).
-                </p>
-            {{ endif }}
-
-            {{ if treatment == 'package_menu' }}
-                <p>
-                    You will be trading packages containing a combination of two distinct goods, labelled as Product A and Product B. Each type of package is bought and sold in separate markets. You can choose to trade either package at any point during the round. Note that each package contains a different amount of each product:
-                </p>
-                <ul>
-                    <li><strong>Package 1</strong> contains exactly {{ x_weight }} units of Product A and 1 unit of Product B ({{ x_weight }}:1 ratio).</li>
-                    <li><strong>Package 2</strong> contains exactly 1 unit of Product A and {{ x_weight }} units of Product B (1:{{ x_weight }} ratio).</li>
-                </ul>
-            {{ endif }}
-        </div>
-
-        <div style="border: 2px solid #007bff; border-radius: 6px; padding: 15px; background-color: #f9f9f9; margin: 20px 0;">
-            <h5 style="margin-top: 0; color: #0056b3;">Trading guidelines:</h5>
-            <p>
-                Your primary objective as either Buyer or Seller is to <strong>maximise your total profit</strong>.
+    <div class="card bg-light mb-4" style="max-width: 650px; margin: 30px auto; border-radius: 8px;">
+        <div class="card-body text-center p-4">
+            
+            <h4 class="card-title mb-4" style="color: #333;">Welcome to the experiment</h4>
+            
+            <p style="font-size: 1.15em;" class="mb-4">
+                Thank you for participating in today's session.
             </p>
-            <ul>
-                <li style="margin-bottom: 8px;">
-                    As a <strong>Seller</strong>, you should sell units at a price <strong>higher</strong> than your <strong>Cost</strong>.
-                </li>
-                <li>
-                    As a <strong>Buyer</strong>, you should purchase units at a price <strong>lower</strong> than your <strong>Value</strong>.
-                </li>
-            </ul>
+
+            <div class="alert alert-info text-start mb-4" role="alert" style="font-size: 1.05em;">
+                <strong>Before we begin:</strong>
+                <ol class="mb-0 mt-2 ps-3" style="line-height: 1.6;">
+                    <li>Please read the provided <strong>Information sheet</strong>.</li>
+                    <li>Fill in and sign the physical <strong>Consent form</strong> on your desk.</li>
+                    <li>Review the <strong>Experiment instructions</strong> document.</li>
+                </ol>
+            </div>
+
+            <div class="p-3 my-3 bg-white rounded border text-center">
+                <strong class="d-block mb-3" style="color: #333; font-size: 1.05em;">Session Outline</strong>
+                
+                <div class="d-flex flex-column flex-md-row align-items-center justify-content-between gap-2">
+                    <div class="p-2 px-3 bg-light border fw-bold text-primary shadow-sm" style="font-size: 0.85em;">
+                        Introduction & instructions
+                    </div>
+                    <span class="text-muted d-none d-md-inline fw-bold">➔</span>
+                    <span class="text-muted d-md-none fw-bold">↓</span>
+
+                    <div class="p-2 px-3 bg-light border fw-bold text-primary shadow-sm" style="font-size: 0.85em;">
+                        Comprehension quiz
+                    </div>
+                    <span class="text-muted d-none d-md-inline fw-bold">➔</span>
+                    <span class="text-muted d-md-none fw-bold">↓</span>
+
+                    <div class="p-2 px-3 bg-light border fw-bold text-primary shadow-sm" style="font-size: 0.85em;">
+                        Trading phase
+                    </div>
+                    <span class="text-muted d-none d-md-inline fw-bold">➔</span>
+                    <span class="text-muted d-md-none fw-bold">↓</span>
+
+                    <div class="p-2 px-3 bg-light border fw-bold text-primary shadow-sm" style="font-size: 0.85em;">
+                        Post-experiment questionnaire
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-3 my-3 bg-white rounded border text-start" style="font-size: 1.05em; line-height: 1.6;">
+                <div class="d-flex align-items-center">
+                    <span class="me-2">👉</span>
+                    <span><strong>Please wait for the experimenter</strong> to provide further instructions before clicking the button below to proceed.</span>
+                </div>
+            </div>
+
         </div>
-        
-        <div style="text-align: right; margin-top: 30px;">
-            {{ next_button }}
-        </div>
-        
+    </div>
+
+    <div class="text-center">
+        {{ next_button }}
     </div>
 {{ endblock }}

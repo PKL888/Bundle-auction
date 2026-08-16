@@ -1,4 +1,5 @@
 from otree.api import *
+from math import ceil
 import time
 import random
 
@@ -10,10 +11,10 @@ class C(BaseConstants):
     NAME_IN_URL = 'econ_lab'
     PLAYERS_PER_GROUP = None
 
-    TRADING_LENGTH = 60
-    WAITING_LENGTH = 15
+    TRADING_LENGTH = 10
+    WAITING_LENGTH = 5
 
-    NUM_PRACTICE_ROUNDS = 2
+    NUM_PRACTICE_ROUNDS = 1
     NUM_REAL_ROUNDS = 4
     NUM_ROUNDS = NUM_PRACTICE_ROUNDS + NUM_REAL_ROUNDS
     
@@ -192,7 +193,8 @@ class Welcome(Page):
         
         return {
             'treatment': treatment,
-            'x_weight': x_weight
+            'x_weight': x_weight,
+            'is_buyer': player.is_buyer
         }
 
 class ReadyToStart(WaitPage):
@@ -490,8 +492,7 @@ def custom_export(players):
             else:
                 real_profit += p.profit
 
-        # Call the method with () and convert the resulting Currency object to a float
-        payoff_aud = float(part.payoff_plus_participation_fee())
+        payoff_aud = min(10, ceil(float(part.payoff_plus_participation_fee()) * 2) / 2)
 
         row.extend([real_profit, payoff_aud])
         yield row

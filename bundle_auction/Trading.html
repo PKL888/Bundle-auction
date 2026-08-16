@@ -368,10 +368,12 @@
     // Handles the manual input box submission
     function submitInputOrder(action, pType, safeId) {
         let inputEl = document.getElementById(`input_${action}_${safeId}`);
-        let price = parseFloat(inputEl.value);
-        
-        if (!inputEl.value || isNaN(price) || price <= 0) {
-            return alert("Please enter a valid positive price.");
+        let rawValue = inputEl.value.trim();
+        let price = parseFloat(rawValue);
+        let twoDecimalRegex = /^\d+(\.\d{1,2})?$/;
+
+        if (!rawValue || isNaN(price) || price <= 0 || !twoDecimalRegex.test(rawValue)) {
+            return alert("Please enter a valid positive price with up to 2 decimal places.");
         }
         submitSpecificOrder(action, price.toFixed(2), pType, safeId);
         

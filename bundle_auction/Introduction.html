@@ -1,0 +1,67 @@
+{{ block title }}
+    Welcome to this experiment on economic decision-making
+{{ endblock }}
+
+{{ block content }}
+    <div class="card bg-light mb-4" style="max-width: 650px; margin: 30px auto; border-radius: 8px;">
+        <div class="card-body text-center p-4">
+            
+            <h4 class="card-title mb-4" style="color: #333;">Experiment overview</h4>
+            
+            <p style="font-size: 1.1em;" class="mb-3">
+                The experiment consists of <strong>2 practice rounds</strong> followed by <strong>12 trading rounds</strong>.
+            </p>
+
+            <p style="font-size: 1.25em;" class="mt-4 mb-4">
+                Your assigned role for all rounds: <br>
+                {{ if is_buyer }}
+                    <span style="color: #28a745; font-size: 1.5em; font-weight: bold;">
+                        Buyer 
+                    </span>
+                {{ else }} 
+                    <span style="color: #dc3545; font-size: 1.5em; font-weight: bold;">
+                        Seller 
+                    </span>
+                {{ endif }} 
+            </p>
+
+            <div class="alert alert-info text-start mb-3" role="alert" style="font-size: 1.05em;">
+                <strong>Market Rules:</strong>
+                <div class="mt-2">
+                    {{ if treatment == 'baseline' }}
+                        You will be trading products representing two distinct goods, labelled as <strong>Product A</strong> and <strong>Product B</strong>. Each type of Product is bought and sold in separate markets, and you can choose to trade either Product at any point during the round.
+                    {{ endif }}
+
+                    {{ if treatment == 'single_package' }}
+                        You will be trading packages containing a combination of two distinct goods, labelled as Product A and Product B. Each <strong>Package</strong> contains exactly 1 unit of each Product (1:1 ratio), and you can choose to trade Packages at any point during the round.
+                    {{ endif }}
+
+                    {{ if treatment == 'package_menu' }}
+                        You will be trading packages containing a combination of two distinct goods, labelled as Product A and Product B. Each type of Package is bought and sold in separate markets, and you can choose to trade either Package at any point during the round. Note that each Package contains a different amount of each Product, and these amounts may change between rounds.
+                    {{ endif }}
+                </div>
+            </div>
+
+            <div class="p-3 my-3 bg-white rounded border text-start" style="font-size: 1.05em; line-height: 1.6;">
+                <div class="mb-1">
+                    <strong>Trading Guidelines:</strong>
+                </div>
+                <div>
+                    Your primary objective is to <strong>maximise your total profit</strong>.
+                </div>
+                <ul class="mb-0 mt-2 ps-3">
+                    {{ if is_buyer }}
+                        <li>As a <strong>Buyer</strong>, try to purchase units at a price <strong>lower</strong> than your <strong>Value</strong>.</li>
+                    {{ else }}
+                        <li>As a <strong>Seller</strong>, try to sell units at a price <strong>higher</strong> than your <strong>Cost</strong>.</li>
+                    {{ endif }}
+                </ul>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="text-center">
+        {{ next_button }}
+    </div>
+{{ endblock }}
