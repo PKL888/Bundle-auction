@@ -3,36 +3,45 @@
 {{ endblock }}
 
 {{ block content }}
-    <div style="max-width: 800px; margin: 0 auto; line-height: 1.6; font-family: Arial, sans-serif;">
-        
-        <div style="border: 2px solid #007bff; border-radius: 6px; padding: 20px; background-color: #f8fbff; margin: 20px 0;">
-            <h5 style="margin-top: 0; color: #0056b3;">Instructions</h5>
-            <p>
-                Please answer the comprehension questions below to verify your understanding of the experimental rules. 
-                If any questions are answered incorrectly, you will be prompted to re-attempt only those specific questions until all are answered correctly.
-            </p>
-            <p style="margin-bottom: 0;">
-                <strong>Progress:</strong> Passed {{ completed_count }} / {{ total_count }} Questions
-            </p>
-        </div>
+    <div class="card bg-light mb-4" style="max-width: 650px; margin: 30px auto; border-radius: 8px;">
+        <div class="card-body text-center p-4">
+            
+            <h4 class="card-title mb-4" style="color: #333;">Comprehension quiz</h4>
 
-        {{ if is_retry }}
-            <div style="border: 2px solid #dc3545; border-radius: 6px; padding: 15px; background-color: #fdf2f2; margin: 20px 0; color: #dc3545;">
-                <strong>Some answers were incorrect!</strong> Please re-evaluate the remaining question(s) below.
-            </div>
-        {{ endif }}
+            <p style="font-size: 1.1em;" class="mb-4">
+                Please answer the questions below to verify your understanding of the experimental rules.
+            </p>
 
-        <div style="border: 2px solid #ccc; border-radius: 6px; padding: 20px; background-color: #f9f9f9; margin: 20px 0;">
-            {{ for field in form }}
-                <div style="margin-bottom: 25px;">
-                    {{ formfield field }}
+            <div class="alert alert-info text-start mb-4" role="alert" style="font-size: 1.05em; line-height: 1.6;">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <strong>Instructions:</strong>
+                    <span class="badge bg-primary fs-6">
+                        Progress: {{ completed_count }} / {{ total_count }} Passed
+                    </span>
                 </div>
-            {{ endfor }}
-        </div>
+                If any questions are answered incorrectly, you will be prompted to re-attempt only those specific questions until all are answered correctly.
+            </div>
 
-        <div style="text-align: right; margin-top: 30px;">
-            {{ next_button }}
+            {{ if is_retry }}
+                <div class="alert alert-danger text-start mb-4" role="alert" style="font-size: 1.05em; line-height: 1.6;">
+                    <strong>Some answers were incorrect!</strong> Please retry the remaining question(s) below.
+                </div>
+            {{ endif }}
+
+            <div class="p-4 my-3 bg-white rounded border text-start" style="font-size: 1.05em; line-height: 1.6;">
+                {{ for field in form }}
+                    {{ if field.name not in passed_questions }}
+                        <div class="mb-4">
+                            {{ formfield field }}
+                        </div>
+                    {{ endif }}
+                {{ endfor }}
+            </div>
+
         </div>
-        
+    </div>
+
+    <div class="text-center">
+        {{ next_button }}
     </div>
 {{ endblock }}

@@ -7,6 +7,25 @@ doc = """
 Multi-attribute continuous double auction with dynamic marginal costs and values, multiple rounds, and role randomisation. Includes stacking and bundling treatments with either a single package or a menu.
 """
 
+CORRECT_ANSWERS = {
+    'q1': 'To maximise your total profit in experimental points.',
+    'q2': 'No',
+    'q3': 'No, you keep the same role for the entire experiment.',
+    'q4': '30 points = $1 AUD (+ $10 participation fee)',
+    'q5': 'It will be lower than $20 (declining value).',
+    'q6': 'It will be higher than $5 (increasing cost).',
+    'q7': '6 points',
+    'q8': '6 points',
+    'q9': '11 points ($8 - (-3))',
+    'q10': 'Zero points',
+    'q11': 'D) Both A and B are valid options',
+    'q12': 'D) Both A and B are valid options',
+    'q13': 'Higher than the current highest bid.',
+    'q14': 'Lower than the current lowest ask.',
+    'q15': 'Your cost for Product B decreases (joint production benefit).',
+    'q16': 'No, package contents/ratios may change between rounds, so you should check your screen carefully.',
+}
+
 class C(BaseConstants):
     NAME_IN_URL = 'econ_lab'
     PLAYERS_PER_GROUP = None
@@ -91,6 +110,209 @@ class Player(BasePlayer):
     trades_Pkg = models.IntegerField(initial=0)
     trades_Pkg1 = models.IntegerField(initial=0)
     trades_Pkg2 = models.IntegerField(initial=0)
+
+    # ==========================================================================
+    # QUIZ FIELDS
+    # ==========================================================================
+    q1 = models.StringField(
+        label="What is your main objective in the experiment?",
+        choices=[
+            'To make as many trades as possible, regardless of profit.',
+            'To maximise your total profit in experimental points.',
+            'To beat the other participants in your group.'
+        ],
+        widget=widgets.RadioSelect
+    )
+    q2 = models.StringField(
+        label="Do profits earned during the practice rounds count toward your final cash earnings?",
+        choices=['Yes', 'No'],
+        widget=widgets.RadioSelect
+    )
+    q3 = models.StringField(
+        label="Will your role (Buyer or Seller) change between trading rounds?",
+        choices=[
+            'Yes, roles change every round.',
+            'No, you keep the same role for the entire experiment.'
+        ],
+        widget=widgets.RadioSelect
+    )
+    q4 = models.StringField(
+        label="What is the conversion rate for your total earnings at the end of the experiment?",
+        choices=[
+            '10 points = $1 AUD (+ $10 participation fee)',
+            '30 points = $1 AUD (+ $10 participation fee)',
+            '100 points = $1 AUD (no participation fee)'
+        ],
+        widget=widgets.RadioSelect
+    )
+    q5 = models.StringField(
+        label="If the first unit of a product you buy has a value of $20, what happens to the value of the second unit of that same product?",
+        choices=[
+            'It will be higher than $20.',
+            'It will be lower than $20 (declining value).',
+            'It will remain exactly $20.'
+        ],
+        widget=widgets.RadioSelect
+    )
+    q6 = models.StringField(
+        label="If the first unit of a product you sell costs $5 to produce, what happens to the cost of the second unit of that same product?",
+        choices=[
+            'It will be higher than $5 (increasing cost).',
+            'It will be lower than $5.',
+            'It will remain exactly $5.'
+        ],
+        widget=widgets.RadioSelect
+    )
+    q7 = models.StringField(
+        label="If you buy a unit with a Value of 15 points at a Price of 9 points, what is your transaction profit?",
+        choices=['24 points', '6 points', '-6 points'],
+        widget=widgets.RadioSelect
+    )
+    q8 = models.StringField(
+        label="If you sell a unit with a Cost of 4 points at a Price of 10 points, what is your transaction profit?",
+        choices=['14 points', '6 points', '40 points'],
+        widget=widgets.RadioSelect
+    )
+    q9 = models.StringField(
+        label="Suppose a unit displays a negative cost of -$3 points (a production bonus). If you sell this unit for a price of 8 points, what is your profit?",
+        choices=['5 points ($8 - 3)', '11 points ($8 - (-3))', '-5 points'],
+        widget=widgets.RadioSelect
+    )
+    q10 = models.StringField(
+        label="If you complete no trades in a round, what is your profit for that round?",
+        choices=['Zero points', '-10 points', 'Equal to your initial participation fee'],
+        widget=widgets.RadioSelect
+    )
+    q11 = models.StringField(
+        label="How can you execute a trade during a round?",
+        choices=[
+            'A) Type a price into the box and click Submit Bid',
+            'B) Click the Buy button next to a seller\'s price to instantly buy',
+            'C) Wait for the computer to automatically trade for you',
+            'D) Both A and B are valid options'
+        ],
+        widget=widgets.RadioSelect
+    )
+    q12 = models.StringField(
+        label="How can you execute a trade during a round?",
+        choices=[
+            'A) Type a price into the box and click Submit Ask',
+            'B) Click the Sell button next to a buyer\'s price to instantly sell',
+            'C) Wait for the computer to automatically trade for you',
+            'D) Both A and B are valid options'
+        ],
+        widget=widgets.RadioSelect
+    )
+    q13 = models.StringField(
+        label="To submit a new Bid (buy offer) that appears on the market, your offer must be:",
+        choices=[
+            'Higher than the current highest bid.',
+            'Lower than the current lowest bid.',
+            'Equal to your personal value.'
+        ],
+        widget=widgets.RadioSelect
+    )
+    q14 = models.StringField(
+        label="To submit a new Ask (sell offer) that appears on the market, your offer must be:",
+        choices=[
+            'Higher than the current highest ask.',
+            'Lower than the current lowest ask.',
+            'Equal to your production cost.'
+        ],
+        widget=widgets.RadioSelect
+    )
+    q15 = models.StringField(
+        label="What happens to your production cost for Product B when you sell a unit of Product A?",
+        choices=[
+            'Your cost for Product B increases.',
+            'Your cost for Product B decreases (joint production benefit).',
+            'Your cost for Product B stays the same.'
+        ],
+        widget=widgets.RadioSelect
+    )
+    q16 = models.StringField(
+        label="Are the amounts/ratios of products inside packages guaranteed to remain the same across all rounds?",
+        choices=[
+            'Yes, package contents never change.',
+            'No, package contents/ratios may change between rounds, so you should check your screen carefully.'
+        ],
+        widget=widgets.RadioSelect
+    )
+
+    # ==========================================================================
+    # QUESTIONNAIRE FIELDS
+    # ==========================================================================
+    risk_preference = models.IntegerField(
+        label="1. How do you see yourself? Are you generally a person who is fully prepared to take risks, or do you try to avoid taking risks? (0 = Not at all willing to take risks, 10 = Very willing to take risks)",
+        choices=list(range(11)),
+        widget=widgets.RadioSelect
+    )
+    age = models.IntegerField(
+        label="2. What is your age (in years)?",
+        min=17, max=100
+    )
+    gender = models.StringField(
+        label="3. What is your gender?",
+        choices=['Female', 'Male', 'Non-binary', 'Prefer not to say'],
+        widget=widgets.RadioSelect
+    )
+    birth_place = models.StringField(
+        label="4. Where were you born?",
+        choices=[
+            'Australia', 'New Zealand', 'Other Pacific nation', 'China', 'India',
+            'East Asia', 'South-East Asia', 'South Asia', 'Other Asia', 'Europe',
+            'United States or Canada', 'Central or South America', 'Africa'
+        ],
+        widget=widgets.RadioSelect
+    )
+    years_in_australia = models.StringField(
+        label="5. If you were not born in Australia, how long have you lived in Australia?",
+        choices=[
+            'Not applicable (born in Australia)',
+            'Less than 1 year',
+            '1-2 years',
+            '2-5 years',
+            'More than 5 years'
+        ],
+        widget=widgets.RadioSelect,
+        blank=True
+    )
+    field_of_study = models.StringField(
+        label="6. What is your main field of study at the University?",
+        choices=[
+            'Management / Business / Commerce', 'Economics', 'Law', 'Engineering',
+            'Information Technology', 'Science / Mathematics', 'Exercise / Sport Science',
+            'Medicine / Nursing / Health Sciences', 'Social Sciences', 'Education', 'Arts'
+        ],
+        widget=widgets.RadioSelect
+    )
+    prev_experiments = models.StringField(
+        label="7. How many economics experiments have you participated in before this one?",
+        choices=[
+            'None', '1-2 previous experiments', '3-5 previous experiments', 'More than 5 previous experiments'
+        ],
+        widget=widgets.RadioSelect
+    )
+    academic_level = models.StringField(
+        label="8. Are you an undergraduate student or a graduate student?",
+        choices=[
+            '1st year undergraduate', '2nd year undergraduate', '3rd year undergraduate',
+            '4th year undergraduate or above', 'Graduate student'
+        ],
+        widget=widgets.RadioSelect
+    )
+    gpa = models.StringField(
+        label="9. What is your cumulative GPA at the University?",
+        choices=[
+            'Between 6.5 and 7.0', 'Between 6.0 and 6.49', 'Between 5.0 and 5.99',
+            'Between 4.0 and 4.99', 'Below 4.0', 'Not applicable (this is my first semester at the University)'
+        ],
+        widget=widgets.RadioSelect
+    )
+    comments = models.LongStringField(
+        label="10. Do you have any comments about today's experiment?",
+        blank=True
+    )
 
     @property
     def underlying_qa(self):
@@ -181,7 +403,32 @@ class Trade(ExtraModel):
     seller_profit = models.FloatField()
     timestamp = models.FloatField()
 
+def get_active_quiz_questions(player: Player):
+    """Filter quiz questions based on role (Buyer/Seller) and Group Treatment."""
+    treatment = player.session.config.get('treatment', 'baseline')
+    is_buyer = player.is_buyer
+
+    # Core questions for all participants
+    active = ['q1', 'q2', 'q3', 'q4', 'q10']
+
+    if is_buyer:
+        active.extend(['q5', 'q7', 'q11', 'q13'])
+    else:  # Seller
+        active.extend(['q6', 'q8', 'q9', 'q12', 'q14'])
+        if treatment == 'baseline':
+            active.append('q15')
+
+    if treatment == 'package_menu':
+        active.append('q16')
+
+    # Sort numerically by question index
+    active.sort(key=lambda x: int(x.replace('q', '')))
+    return active
+
 class Welcome(Page):
+    pass
+
+class Introduction(Page):
     @staticmethod
     def is_displayed(player):
         return player.round_number == 1
@@ -196,6 +443,67 @@ class Welcome(Page):
             'x_weight': x_weight,
             'is_buyer': player.is_buyer
         }
+
+class Quiz(Page):
+    form_model = 'player'
+
+    @staticmethod
+    def is_displayed(player: Player):
+        return player.round_number == 1
+
+    @staticmethod
+    def get_form_fields(player: Player):
+        active = get_active_quiz_questions(player)
+        passed = player.participant.vars.get('quiz_passed_questions', [])
+        return [q for q in active if q not in passed]
+
+    @staticmethod
+    def vars_for_template(player: Player):
+        active = get_active_quiz_questions(player)
+        passed = player.participant.vars.get('quiz_passed_questions', [])
+        
+        return {
+            'total_count': len(active),
+            'completed_count': len(passed),
+            'passed_questions': passed,  # <-- Pass list of passed questions
+            'is_retry': player.participant.vars.get('quiz_has_failed', False)
+        }
+    @staticmethod
+    def error_message(player: Player, values):
+        active = get_active_quiz_questions(player)
+        
+        # Initialize trackers on first submission
+        if 'quiz_passed_questions' not in player.participant.vars:
+            player.participant.vars['quiz_passed_questions'] = []
+        if 'quiz_attempts' not in player.participant.vars:
+            player.participant.vars['quiz_attempts'] = {f'q{i}': 0 for i in range(1, 17)}
+
+        passed = player.participant.vars['quiz_passed_questions']
+        attempts = player.participant.vars['quiz_attempts']
+        remaining = [q for q in active if q not in passed]
+
+        incorrect_count = 0
+        for q_name in remaining:
+            # Increment the attempt counter for this specific question
+            attempts[q_name] += 1
+            
+            user_val = values.get(q_name)
+            expected_val = CORRECT_ANSWERS.get(q_name)
+
+            if user_val == expected_val:
+                if q_name not in passed:
+                    passed.append(q_name)
+            else:
+                incorrect_count += 1
+
+        player.participant.vars['quiz_passed_questions'] = passed
+        player.participant.vars['quiz_attempts'] = attempts
+
+        if incorrect_count > 0:
+            player.participant.vars['quiz_has_failed'] = True
+            return f"You answered {incorrect_count} question(s) incorrectly. Please review the remaining question(s) below and try again."
+
+        player.participant.vars['quiz_has_failed'] = False
 
 class ReadyToStart(WaitPage):
     @staticmethod
@@ -428,6 +736,21 @@ class FinalResults(Page):
     def vars_for_template(player): 
         real_rounds = [p for p in player.in_all_rounds() if p.round_number > C.NUM_PRACTICE_ROUNDS]
         return {'total_profit': sum([p.profit for p in real_rounds])}
+
+class Questionnaire(Page):
+    form_model = 'player'
+    form_fields = [
+        'risk_preference', 'age', 'gender', 'birth_place',
+        'years_in_australia', 'field_of_study', 'prev_experiments',
+        'academic_level', 'gpa', 'comments'
+    ]
+
+    @staticmethod
+    def is_displayed(player: Player):
+        return player.round_number == C.NUM_ROUNDS
+
+class ThankYou(Page):
+    pass
 
 def custom_export(players):
     """
@@ -695,5 +1018,71 @@ def custom_export(players):
             trades_Pkg2
         ]
 
-page_sequence = [Welcome, ReadyToStart, Trading, BetweenRounds, FinalResults]
+    yield []
+    yield []
+    
+    # =========================================================
+    # SECTION 6: QUIZ ATTEMPTS & QUESTIONNAIRE RESPONSES
+    # =========================================================
+    yield ['=== SECTION 6: QUIZ ATTEMPTS & QUESTIONNAIRE RESPONSES ===']
+    
+    section6_headers = [
+        'session_code', 'treatment', 'participant_code', 'player_id_in_group', 
+        'is_buyer', 'seller_type'
+    ]
+    
+    # Add headers for quiz attempts (q1_attempts to q16_attempts)
+    for i in range(1, 17):
+        section6_headers.append(f'q{i}_attempts')
+        
+    # Add headers for questionnaire fields
+    questionnaire_fields = [
+        'risk_preference', 'age', 'gender', 'birth_place',
+        'years_in_australia', 'field_of_study', 'prev_experiments',
+        'academic_level', 'gpa', 'comments'
+    ]
+    section6_headers.extend(questionnaire_fields)
+    
+    yield section6_headers
+    
+    for part in participants:
+        player_in_rounds = part.get_players()
+        player_in_rounds.sort(key=lambda x: x.round_number)
+        
+        first_p = player_in_rounds[0]
+        last_p = player_in_rounds[-1] # Questionnaire data is saved in the final round
+        session = first_p.session
+        treatment = session.config.get('treatment', 'baseline')
+        
+        row = [
+            session.code,
+            treatment,
+            part.code,
+            first_p.id_in_group,
+            first_p.is_buyer,
+            first_p.seller_type
+        ]
+        
+        # 1. Append Quiz Attempts
+        attempts = part.vars.get('quiz_attempts', {})
+        active_questions = get_active_quiz_questions(first_p)
+        
+        for i in range(1, 17):
+            q_name = f'q{i}'
+            if q_name in active_questions:
+                # If they saw the question, output their attempt count (minimum 1 if they passed)
+                row.append(attempts.get(q_name, 0))
+            else:
+                # If the question was hidden based on their role/treatment
+                row.append('N/A')
+                
+        # 2. Append Questionnaire Responses
+        for field in questionnaire_fields:
+            row.append(getattr(last_p, field))
+            
+        yield row
+
+# page_sequence = [Welcome, Quiz, Introduction, ReadyToStart, Trading, BetweenRounds, FinalResults, Questionnaire]
+# page_sequence = [Introduction, ReadyToStart, Trading, BetweenRounds, FinalResults, Questionnaire]
 # page_sequence = [ReadyToStart, Trading, BetweenRounds, FinalResults]
+page_sequence = [Questionnaire]

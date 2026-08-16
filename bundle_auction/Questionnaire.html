@@ -1,64 +1,66 @@
 {{ block title }}
-    Final questionnaire
+    Post-experiment questionnaire
 {{ endblock }}
 
 {{ block content }}
-    <div style="max-width: 800px; margin: 0 auto; line-height: 1.6; font-family: Arial, sans-serif;">
+    <div class="card bg-light mb-4" style="max-width: 650px; margin: 30px auto; border-radius: 8px;">
+        <div class="card-body text-center p-4">
 
-        <div style="border: 2px solid #007bff; border-radius: 6px; padding: 20px; background-color: #f8fbff; margin: 20px 0;">
-            <p style="margin-bottom: 0;">
+            <h4 class="card-title mb-4" style="color: #333;">Final questionnaire</h4>
+
+            <div class="alert alert-info text-start mb-4" role="alert" style="font-size: 1.05em; line-height: 1.6;">
                 Your answers to this questionnaire will help us understand your decisions better.
                 <strong>All responses are completely anonymous</strong> and linked only to your anonymous participant ID.
-            </p>
+            </div>
+
+            <div class="p-4 my-3 bg-white rounded border text-start" style="font-size: 1.05em; line-height: 1.6;">
+                
+                <div style="margin-bottom: 25px;">
+                    {{ formfield 'risk_preference' }}
+                </div>
+                
+                <div style="margin-bottom: 25px;">
+                    {{ formfield 'age' }}
+                </div>
+
+                <div style="margin-bottom: 25px;">
+                    {{ formfield 'gender' }}
+                </div>
+
+                <div style="margin-bottom: 25px;">
+                    {{ formfield 'birth_place' }}
+                </div>
+
+                <div style="margin-bottom: 25px;">
+                    {{ formfield 'years_in_australia' }}
+                </div>
+
+                <div style="margin-bottom: 25px;">
+                    {{ formfield 'field_of_study' }}
+                </div>
+
+                <div style="margin-bottom: 25px;">
+                    {{ formfield 'prev_experiments' }}
+                </div>
+
+                <div style="margin-bottom: 25px;">
+                    {{ formfield 'academic_level' }}
+                </div>
+
+                <div style="margin-bottom: 25px;">
+                    {{ formfield 'gpa' }}
+                </div>
+
+                <div style="margin-bottom: 25px;">
+                    {{ formfield 'comments' }}
+                </div>
+
+            </div>
+
         </div>
+    </div>
 
-        <div style="border: 2px solid #ccc; border-radius: 6px; padding: 20px; background-color: #f9f9f9; margin: 20px 0;">
-            
-            <div style="margin-bottom: 25px;">
-                {{ formfield 'risk_preference' }}
-            </div>
-            
-            <div style="margin-bottom: 25px;">
-                {{ formfield 'age' }}
-            </div>
-
-            <div style="margin-bottom: 25px;">
-                {{ formfield 'gender' }}
-            </div>
-
-            <div style="margin-bottom: 25px;">
-                {{ formfield 'birth_place' }}
-            </div>
-
-            <div style="margin-bottom: 25px;">
-                {{ formfield 'years_in_australia' }}
-            </div>
-
-            <div style="margin-bottom: 25px;">
-                {{ formfield 'field_of_study' }}
-            </div>
-
-            <div style="margin-bottom: 25px;">
-                {{ formfield 'prev_experiments' }}
-            </div>
-
-            <div style="margin-bottom: 25px;">
-                {{ formfield 'academic_level' }}
-            </div>
-
-            <div style="margin-bottom: 25px;">
-                {{ formfield 'gpa' }}
-            </div>
-
-            <div style="margin-bottom: 25px;">
-                {{ formfield 'comments' }}
-            </div>
-
-        </div>
-
-        <div style="text-align: right; margin-top: 30px;">
-            <button class="otree-btn-next btn btn-primary">Submit & Finish Experiment</button>
-        </div>
-
+    <div class="text-center">
+        {{ next_button }}
     </div>
 {{ endblock }}
