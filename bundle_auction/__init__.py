@@ -1083,6 +1083,6 @@ def custom_export(players):
         yield row
 
 # page_sequence = [Welcome, Quiz, Introduction, ReadyToStart, Trading, BetweenRounds, FinalResults, Questionnaire]
-# page_sequence = [Introduction, ReadyToStart, Trading, BetweenRounds, FinalResults, Questionnaire]
+page_sequence = [Introduction, ReadyToStart, Trading, BetweenRounds, FinalResults, Questionnaire, ThankYou]
 # page_sequence = [ReadyToStart, Trading, BetweenRounds, FinalResults]
-page_sequence = [Questionnaire]
+# page_sequence = [Questionnaire]
