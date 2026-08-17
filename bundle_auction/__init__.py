@@ -33,7 +33,7 @@ class C(BaseConstants):
     TRADING_LENGTH = 180
     WAITING_LENGTH = 30
 
-    NUM_PRACTICE_ROUNDS = 1
+    NUM_PRACTICE_ROUNDS = 0
     NUM_REAL_ROUNDS = 4
     NUM_ROUNDS = NUM_PRACTICE_ROUNDS + NUM_REAL_ROUNDS
     
@@ -1083,6 +1083,6 @@ def custom_export(players):
         yield row
 
 # page_sequence = [Welcome, Quiz, Introduction, ReadyToStart, Trading, BetweenRounds, FinalResults, Questionnaire]
-page_sequence = [Introduction, ReadyToStart, Trading, BetweenRounds, FinalResults, Questionnaire, ThankYou]
+page_sequence = [ReadyToStart, Trading, BetweenRounds, FinalResults, Questionnaire]
 # page_sequence = [ReadyToStart, Trading, BetweenRounds, FinalResults]
 # page_sequence = [Questionnaire]
