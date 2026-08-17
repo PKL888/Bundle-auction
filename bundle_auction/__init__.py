@@ -30,8 +30,8 @@ class C(BaseConstants):
     NAME_IN_URL = 'econ_lab'
     PLAYERS_PER_GROUP = None
 
-    TRADING_LENGTH = 10
-    WAITING_LENGTH = 5
+    TRADING_LENGTH = 180
+    WAITING_LENGTH = 30
 
     NUM_PRACTICE_ROUNDS = 1
     NUM_REAL_ROUNDS = 4
