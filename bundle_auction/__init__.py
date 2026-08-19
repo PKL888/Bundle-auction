@@ -771,8 +771,10 @@ class Questionnaire(Page):
         return player.round_number == C.NUM_ROUNDS
 
 class ThankYou(Page):
-    pass
-
+    @staticmethod
+    def is_displayed(player: Player):
+        return player.round_number == C.NUM_ROUNDS
+    
 def custom_export(players):
     """
     Exports a single CSV file containing five distinct sections:
