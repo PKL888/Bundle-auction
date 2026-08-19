@@ -25,8 +25,8 @@ class C(BaseConstants):
     NAME_IN_URL = 'econ_lab'
     PLAYERS_PER_GROUP = None
 
-    TRADING_LENGTH = 180
-    WAITING_LENGTH = 30
+    TRADING_LENGTH = 10
+    WAITING_LENGTH = 5
 
     NUM_PRACTICE_ROUNDS = 1
     NUM_REAL_ROUNDS = 4
@@ -394,7 +394,9 @@ def get_active_quiz_questions(player: Player):
     return active
 
 class Welcome(Page):
-    pass
+    @staticmethod
+    def is_displayed(player: Player):
+        return player.round_number == C.NUM_ROUNDS
 
 class Introduction(Page):
     @staticmethod
