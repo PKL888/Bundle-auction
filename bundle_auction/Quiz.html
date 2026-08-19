@@ -3,45 +3,116 @@
 {{ endblock }}
 
 {{ block content }}
-    <div class="card bg-light mb-4" style="max-width: 650px; margin: 30px auto; border-radius: 8px;">
-        <div class="card-body text-center p-4">
+    <style>
+        .quiz-passed {
+            border: 2px solid #198754 !important;
+            background-color: #f8fff9 !important;
+            border-radius: 6px;
+            padding: 14px;
+            margin-bottom: 18px;
+            pointer-events: none; /* Locks all inputs on review screen */
+            opacity: 0.95;
+        }
+
+        .quiz-incorrect {
+            border: 2px solid #dc3545 !important;
+            background-color: #fff8f8 !important;
+            border-radius: 6px;
+            padding: 14px;
+            margin-bottom: 18px;
+        }
+
+        .status-badge {
+            font-weight: bold;
+            font-size: 0.9em;
+            margin-bottom: 8px;
+            display: block;
+        }
+        .badge-correct { color: #198754; }
+        .badge-incorrect { color: #dc3545; }
+    </style>
+
+    <div class="card bg-light mb-4" style="max-width: 700px; margin: 30px auto; border-radius: 8px;">
+        <div class="card-body p-4">
             
-            <h4 class="card-title mb-4" style="color: #333;">Comprehension quiz</h4>
+            <h4 class="card-title mb-4 text-center" style="color: #333;">
+                {{ if is_review }}
+                    Comprehension quiz — Review
+                {{ else }}
+                    Comprehension quiz
+                {{ endif }}
+            </h4>
 
-            <p style="font-size: 1.1em;" class="mb-4">
-                Please answer the questions below to verify your understanding of the experimental rules.
-            </p>
-
-            <div class="alert alert-info text-start mb-4" role="alert" style="font-size: 1.05em; line-height: 1.6;">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <strong>Instructions:</strong>
-                    <span class="badge bg-primary fs-6">
-                        Progress: {{ completed_count }} / {{ total_count }} Passed
-                    </span>
+            {{ if is_review }}
+                <div class="alert alert-success text-start mb-4" role="alert" style="font-size: 1.05em; line-height: 1.6;">
+                    <strong>All answers correct!</strong> Please review your confirmed responses below before moving on to the experiment instructions.
                 </div>
-                If any questions are answered incorrectly, you will be prompted to re-attempt only those specific questions until all are answered correctly.
-            </div>
+            {{ else }}
+                <p style="font-size: 1.05em;" class="mb-4">
+                    Please answer the questions below to confirm your understanding of the rules from the Instructions document. If you have any questions or are unsure about anything, please raise your hand and an experimenter will come to assist you.
+                </p>
 
-            {{ if is_retry }}
-                <div class="alert alert-danger text-start mb-4" role="alert" style="font-size: 1.05em; line-height: 1.6;">
-                    <strong>Some answers were incorrect!</strong> Please retry the remaining question(s) below.
+                <div class="alert alert-info text-start mb-4" role="alert" style="font-size: 1.05em; line-height: 1.6;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <strong>Progress Tracker:</strong>
+                        <span class="badge bg-primary fs-6">
+                            {{ completed_count }} / {{ total_count }} Passed
+                        </span>
+                    </div>
                 </div>
             {{ endif }}
 
-            <div class="p-4 my-3 bg-white rounded border text-start" style="font-size: 1.05em; line-height: 1.6;">
-                {{ for field in form }}
-                    {{ if field.name not in passed_questions }}
-                        <div class="mb-4">
-                            {{ formfield field }}
-                        </div>
-                    {{ endif }}
-                {{ endfor }}
+            {{ if is_retry }}
+                <div class="alert alert-danger text-start mb-4" role="alert" style="font-size: 1.05em; line-height: 1.6;">
+                    <strong>Some answers were incorrect!</strong> Correct answers are highlighted in green and locked. Please re-attempt the question(s) highlighted in red below.
+                </div>
+            {{ endif }}
+
+            <div class="p-4 my-3 bg-white rounded border text-start">
+                {{ formfields }}
+            </div>
+
+            <div class="text-center mt-4">
+                {{ if is_review }}
+                    <button class="btn btn-primary btn-lg">Proceed to Instructions</button>
+                {{ else }}
+                    {{ next_button }}
+                {{ endif }}
             </div>
 
         </div>
     </div>
 
-    <div class="text-center">
-        {{ next_button }}
-    </div>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            let numericInputs = document.querySelectorAll('.form-group input[type="number"], .form-group input[type="text"]');
+            numericInputs.forEach(function(input) {
+                input.setAttribute('placeholder', '$0.00');
+            });
+
+            let passed = js_vars.passed_questions || [];
+            let incorrect = js_vars.incorrect_questions || [];
+
+            document.querySelectorAll('.form-group, .mb-3').forEach(function(container) {
+                let fieldElem = container.querySelector('[name]');
+                if (!fieldElem) return;
+
+                let fieldName = fieldElem.getAttribute('name');
+
+                if (passed.includes(fieldName)) {
+                    container.classList.add('quiz-passed');
+                    let badge = document.createElement('div');
+                    badge.className = 'status-badge badge-correct';
+                    badge.innerHTML = '✓ Correct';
+                    container.prepend(badge);
+                } else if (incorrect.includes(fieldName)) {
+                    container.classList.add('quiz-incorrect');
+                    let badge = document.createElement('div');
+                    badge.className = 'status-badge badge-incorrect';
+                    badge.innerHTML = '✗ Incorrect – Please try again';
+                    container.prepend(badge);
+                }
+            });
+        });
+    </script>
 {{ endblock }}
