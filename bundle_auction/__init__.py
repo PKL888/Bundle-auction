@@ -11,13 +11,13 @@ CORRECT_ANSWERS = {
     'q1': 6.0,
     'q2': 6.0,
     'q3': 'No, you keep the same role for the entire experiment.',
-    'q4': 'It will be lower than $20 (declining value).',
+    'q4': 'It will be lower than $20 (decreasing value).',
     'q5': 'It will be higher than $5 (increasing cost).',
     'q6': 11.0,
     'q7': 'D) Both A and B are correct.',
     'q8': 'D) Both A and B are correct.',
-    'q9': 'Higher than the current highest bid.',
-    'q10': 'Lower than the current lowest ask.',
+    'q9': 'Higher than the current highest Bid.',
+    'q10': 'Lower than the current lowest Ask.',
     'q11': 30.0,
 }
 
@@ -25,8 +25,8 @@ class C(BaseConstants):
     NAME_IN_URL = 'econ_lab'
     PLAYERS_PER_GROUP = None
 
-    TRADING_LENGTH = 10
-    WAITING_LENGTH = 5
+    TRADING_LENGTH = 60
+    WAITING_LENGTH = 10
 
     NUM_PRACTICE_ROUNDS = 1
     NUM_REAL_ROUNDS = 4
@@ -34,15 +34,37 @@ class C(BaseConstants):
     
     ALL_PRODUCTS = ['Product A', 'Product B', 'Package', 'Package 1', 'Package 2']
 
-    # Heterogeneous cost parameters (alpha, gamma)
-    PARAMETERS = [
-        (0.32, -0.63),
-        (0.32, -0.38),
-        (0.61, -0.63),
-        (0.61, -0.38)
-    ]
-    REPETITIONS = int(NUM_REAL_ROUNDS / 4)
+    ACTIVE_SESSION_NUMBER = 1
 
+    # Heterogeneous cost parameters (alpha, gamma)
+    TREATMENT_PARAMS = {
+        'HH': (0.32, -0.63),
+        'HL': (0.32, -0.38),
+        'LH': (0.61, -0.63),
+        'LL': (0.61, -0.38)
+    }
+    
+    REPETITIONS_PER_TREATMENT = 3
+
+    SESSION_ORDERS = {
+        1:  ['HL', 'LH', 'LL', 'HH'],
+        2:  ['HL', 'LH', 'LL', 'HH'],
+        3:  ['HL', 'LH', 'LL', 'HH'],
+        4:  ['LL', 'HL', 'HH', 'LH'],
+        5:  ['LL', 'HL', 'HH', 'LH'],
+        6:  ['LH', 'LL', 'HH', 'HL'],
+        7:  ['LL', 'HL', 'HH', 'LH'],
+        8:  ['LH', 'LL', 'HH', 'HL'],
+        9:  ['LH', 'LL', 'HH', 'HL'],
+        10: ['HL', 'HH', 'LL', 'LH'],
+        11: ['HL', 'LH', 'LL', 'HH'],
+        12: ['LL', 'HL', 'HH', 'LH'],
+        13: ['HL', 'HH', 'LL', 'LH'],
+        14: ['HL', 'HH', 'LL', 'LH'],
+        15: ['LH', 'LL', 'HH', 'HL'],
+        16: ['HL', 'HH', 'LL', 'LH'],
+    }
+    
     # Fixed benefit parameters
     OMEGA = 10.0
     THETA = 0.2
@@ -56,9 +78,16 @@ class Subsession(BaseSubsession):
 
 def creating_session(subsession: Subsession):
     if subsession.round_number == 1:
-        # Generate and shuffle parameter sequence for real rounds only
-        real_sequence = C.PARAMETERS * C.REPETITIONS
-        random.shuffle(real_sequence)
+        # Determine which session sequence to use
+        session_num = subsession.session.config.get('session_number', C.ACTIVE_SESSION_NUMBER)
+        base_sequence = C.SESSION_ORDERS.get(session_num, ['HH', 'HL', 'LH', 'LL'])
+
+        # Build the real sequence by repeating each treatment parameter 3 times in a row
+        real_sequence = []
+        for code in base_sequence:
+            params = C.TREATMENT_PARAMS[code]
+            real_sequence.extend([params] * C.REPETITIONS_PER_TREATMENT)
+            
         subsession.session.vars['parameter_sequence'] = real_sequence
 
     # Assign practice vs. real round parameters
@@ -121,11 +150,11 @@ class Player(BasePlayer):
     # QUIZ FIELDS
     # ==========================================================================
     q1 = models.FloatField(
-        label="If you buy a unit with a Value of 15 points at a Price of 9 points, what is your transaction profit?",
+        label="If you buy a unit with a Value of 15 points at a Price of 9 points, what is your profit?",
         blank=True
     )
     q2 = models.FloatField(
-        label="If you sell a unit with a Cost of 4 points at a Price of 10 points, what is your transaction profit?",
+        label="If you sell a unit with a Cost of 4 points at a Price of 10 points, what is your profit?",
         blank=True
     )
     q3 = models.StringField(
@@ -138,21 +167,21 @@ class Player(BasePlayer):
         blank=True
     )
     q4 = models.StringField(
-        label="If the first unit of a product you buy has a value of $20, what happens to the value of the second unit of that same product?",
+        label="As a Buyer, if the first unit of a product you buy has a value of $20, what happens to the value of the second unit of that same product?",
         choices=[
-            'It will be higher than $20.',
-            'It will be lower than $20 (declining value).',
-            'It will remain exactly $20.'
+            'It will be higher than $20 (increasing value).',
+            'It will be lower than $20 (decreasing value).',
+            'It will remain exactly $20 (constant value).'
         ],
         widget=widgets.RadioSelect,
         blank=True
     )
     q5 = models.StringField(
-        label="If the first unit of a product you sell costs $5 to produce, what happens to the cost of the second unit of that same product?",
+        label="As a Seller, if the first unit of a product you sell costs $5 to produce, what happens to the cost of the second unit of that same product?",
         choices=[
             'It will be higher than $5 (increasing cost).',
-            'It will be lower than $5.',
-            'It will remain exactly $5.'
+            'It will be lower than $5 (decreasing cost).',
+            'It will remain exactly $5 (constant cost).'
         ],
         widget=widgets.RadioSelect,
         blank=True
@@ -162,7 +191,7 @@ class Player(BasePlayer):
         blank=True
     )
     q7 = models.StringField(
-        label="How can you execute a trade during a round?",
+        label="As a Buyer, how can you execute a trade during a round?",
         choices=[
             'A) Type a Bid into the box and click Submit Bid.',
             'B) Click the Buy button next to a Seller\'s Ask to instantly buy at that price.',
@@ -173,7 +202,7 @@ class Player(BasePlayer):
         blank=True
     )
     q8 = models.StringField(
-        label="How can you execute a trade during a round?",
+        label="As a Seller, how can you execute a trade during a round?",
         choices=[
             'A) Type an Ask into the box and click Submit Ask.',
             'B) Click the Sell button next to a Buyer\'s Bid to instantly sell at that price.',
@@ -184,20 +213,20 @@ class Player(BasePlayer):
         blank=True
     )
     q9 = models.StringField(
-        label="To submit a new Bid (buy offer) that appears on the market, your offer must be:",
+        label="As a Buyer, to submit a new Bid (buy offer) that appears on the market, your offer must be:",
         choices=[
-            'Higher than the current highest bid.',
-            'Lower than the current lowest bid.',
+            'Higher than the current highest Bid.',
+            'Lower than the current lowest Bid.',
             'Equal to your personal value.'
         ],
         widget=widgets.RadioSelect,
         blank=True
     )
     q10 = models.StringField(
-        label="To submit a new Ask (sell offer) that appears on the market, your offer must be:",
+        label="As a Seller, to submit a new Ask (sell offer) that appears on the market, your offer must be:",
         choices=[
-            'Higher than the current highest ask.',
-            'Lower than the current lowest ask.',
+            'Higher than the current highest Ask.',
+            'Lower than the current lowest Ask.',
             'Equal to your production cost.'
         ],
         widget=widgets.RadioSelect,
@@ -211,21 +240,21 @@ class Player(BasePlayer):
     # QUESTIONNAIRE FIELDS
     # ==========================================================================
     risk_preference = models.IntegerField(
-        label="1. How do you see yourself? Are you generally a person who is fully prepared to take risks, or do you try to avoid taking risks? (0 = Not at all willing to take risks, 10 = Very willing to take risks)",
+        label="How do you see yourself? Are you generally a person who is fully prepared to take risks, or do you try to avoid taking risks? (0 = Not at all willing to take risks, 10 = Very willing to take risks)",
         choices=list(range(11)),
         widget=widgets.RadioSelect
     )
     age = models.IntegerField(
-        label="2. What is your age (in years)?",
+        label="What is your age (in years)?",
         min=17, max=100
     )
     gender = models.StringField(
-        label="3. What is your gender?",
+        label="What is your gender?",
         choices=['Female', 'Male', 'Non-binary', 'Prefer not to say'],
         widget=widgets.RadioSelect
     )
     birth_place = models.StringField(
-        label="4. Where were you born?",
+        label="Where were you born?",
         choices=[
             'Australia', 'New Zealand', 'Other Pacific nation', 'China', 'India',
             'East Asia', 'South-East Asia', 'South Asia', 'Other Asia', 'Europe',
@@ -234,7 +263,7 @@ class Player(BasePlayer):
         widget=widgets.RadioSelect
     )
     years_in_australia = models.StringField(
-        label="5. If you were not born in Australia, how long have you lived in Australia?",
+        label="If you were not born in Australia, how long have you lived in Australia?",
         choices=[
             'Not applicable (born in Australia)',
             'Less than 1 year',
@@ -246,7 +275,7 @@ class Player(BasePlayer):
         blank=True
     )
     field_of_study = models.StringField(
-        label="6. What is your main field of study at the University?",
+        label="What is your main field of study at the University?",
         choices=[
             'Management / Business / Commerce', 'Economics', 'Law', 'Engineering',
             'Information Technology', 'Science / Mathematics', 'Exercise / Sport Science',
@@ -255,14 +284,14 @@ class Player(BasePlayer):
         widget=widgets.RadioSelect
     )
     prev_experiments = models.StringField(
-        label="7. How many economics experiments have you participated in before this one?",
+        label="How many economics experiments have you participated in before this one?",
         choices=[
             'None', '1-2 previous experiments', '3-5 previous experiments', 'More than 5 previous experiments'
         ],
         widget=widgets.RadioSelect
     )
     academic_level = models.StringField(
-        label="8. Are you an undergraduate student or a graduate student?",
+        label="What is your current year of study?",
         choices=[
             '1st year undergraduate', '2nd year undergraduate', '3rd year undergraduate',
             '4th year undergraduate or above', 'Graduate student'
@@ -270,7 +299,7 @@ class Player(BasePlayer):
         widget=widgets.RadioSelect
     )
     gpa = models.StringField(
-        label="9. What is your cumulative GPA at the University?",
+        label="What is your cumulative GPA at the University?",
         choices=[
             'Between 6.5 and 7.0', 'Between 6.0 and 6.49', 'Between 5.0 and 5.99',
             'Between 4.0 and 4.99', 'Below 4.0', 'Not applicable (this is my first semester at the University)'
@@ -278,7 +307,7 @@ class Player(BasePlayer):
         widget=widgets.RadioSelect
     )
     comments = models.LongStringField(
-        label="10. Do you have any comments about today's experiment?",
+        label="Do you have any comments about today's experiment?",
         blank=True
     )
 
@@ -380,14 +409,10 @@ def get_active_quiz_questions(player: Player):
     is_buyer = player.is_buyer
 
     # Core questions for all participants
-    active = ['q3', 'q11']
+    active = ['q1', 'q2', 'q3', 'q4', 'q5', 'q7', 'q8', 'q9', 'q10', 'q11']
 
-    if is_buyer:
-        active.extend(['q1', 'q4', 'q7', 'q9'])
-    else:  # Seller
-        active.extend(['q2', 'q5', 'q8', 'q10'])
-        if treatment == 'baseline':
-            active.append('q6')
+    if treatment == 'baseline':
+        active.append('q6')
 
     # Sort numerically by question index
     active.sort(key=lambda x: int(x.replace('q', '')))
@@ -396,24 +421,13 @@ def get_active_quiz_questions(player: Player):
 class Welcome(Page):
     @staticmethod
     def is_displayed(player: Player):
-        return player.round_number == C.NUM_ROUNDS
-
-class Introduction(Page):
-    @staticmethod
-    def is_displayed(player):
         return player.round_number == 1
 
+class Instructions(Page):
     @staticmethod
-    def vars_for_template(player):
-        treatment = player.session.config.get('treatment', 'baseline')
-        x_weight = int(player.subsession.x_param) 
-        
-        return {
-            'treatment': treatment,
-            'x_weight': x_weight,
-            'is_buyer': player.is_buyer
-        }
-
+    def is_displayed(player: Player):
+        return player.round_number == 1
+    
 class Quiz(Page):
     form_model = 'player'
 
@@ -528,6 +542,22 @@ class QuizReview(Page):
             'is_review': True  # Triggers the success banner in Quiz.html
         }
     
+class Introduction(Page):
+    @staticmethod
+    def is_displayed(player):
+        return player.round_number == 1
+
+    @staticmethod
+    def vars_for_template(player):
+        treatment = player.session.config.get('treatment', 'baseline')
+        x_weight = int(player.subsession.x_param) 
+        
+        return {
+            'treatment': treatment,
+            'x_weight': x_weight,
+            'is_buyer': player.is_buyer
+        }
+
 class ReadyToStart(WaitPage):
     @staticmethod
     def after_all_players_arrive(group: Group):
@@ -733,7 +763,8 @@ class BetweenRounds(Page):
     def vars_for_template(player):
         is_practice = player.round_number <= C.NUM_PRACTICE_ROUNDS
         is_transition = player.round_number == C.NUM_PRACTICE_ROUNDS
-     
+        is_finished = player.round_number == C.NUM_ROUNDS
+
         real_rounds = [p for p in player.in_all_rounds() if p.round_number > C.NUM_PRACTICE_ROUNDS]
         total_profit = sum([p.profit for p in real_rounds])
         
@@ -745,21 +776,12 @@ class BetweenRounds(Page):
         return {
             'is_practice': is_practice,
             'is_transition': is_transition,
+            'is_finished': is_finished,
             'round_profit': player.profit,
             'total_profit': total_profit,
             'display_round': display_round
         }
     
-class FinalResults(Page):
-    @staticmethod
-    def is_displayed(player): 
-        return player.round_number == C.NUM_ROUNDS
-    
-    @staticmethod
-    def vars_for_template(player): 
-        real_rounds = [p for p in player.in_all_rounds() if p.round_number > C.NUM_PRACTICE_ROUNDS]
-        return {'total_profit': sum([p.profit for p in real_rounds])}
-
 class Questionnaire(Page):
     form_model = 'player'
     form_fields = [
@@ -777,6 +799,11 @@ class ThankYou(Page):
     def is_displayed(player: Player):
         return player.round_number == C.NUM_ROUNDS
     
+    @staticmethod
+    def vars_for_template(player): 
+        real_rounds = [p for p in player.in_all_rounds() if p.round_number > C.NUM_PRACTICE_ROUNDS]
+        return {'total_profit': sum([p.profit for p in real_rounds])}
+
 def custom_export(players):
     """
     Exports a single CSV file containing five distinct sections:
@@ -1102,7 +1129,8 @@ def custom_export(players):
             
         yield row
 
-page_sequence = [Welcome, Quiz, QuizReview, Introduction, ReadyToStart, Trading, BetweenRounds, FinalResults, Questionnaire, ThankYou]
+# page_sequence = [Welcome, Instructions, Quiz, QuizReview, Introduction, ReadyToStart, Trading, BetweenRounds, Questionnaire, ThankYou]
+page_sequence = [Welcome, Instructions, Introduction, ReadyToStart, Trading, BetweenRounds, Questionnaire, ThankYou]
 # page_sequence = [ReadyToStart, Trading, BetweenRounds, FinalResults, Questionnaire]
 # page_sequence = [ReadyToStart, Trading, BetweenRounds, FinalResults]
 # page_sequence = [Questionnaire]

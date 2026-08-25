@@ -1,6 +1,8 @@
 {{ block title }}
     {{ if is_transition }}
         Practice rounds complete
+    {{ elif is_finished}}
+        Trading phase complete
     {{ else }}
         Round complete
     {{ endif }}
@@ -44,6 +46,13 @@
                     <div class="d-flex align-items-center">
                         <span class="me-2">👉</span>
                         <span>The practice rounds are now complete. <strong>Please wait for the experimenter's instructions</strong> before clicking <strong>Next</strong> to begin the main experiment.</span>
+                    </div>
+                </div>
+            {{ elif is_finished }}
+                <div class="alert alert-info text-start mt-4 mb-2" role="alert" style="font-size: 1.05em; line-height: 1.6;">
+                    <div class="d-flex align-items-center">
+                        <span class="me-2">👉</span>
+                        <span>Click <strong>Next</strong> below to proceed to a short post-experiment questionnaire. After you complete the questionnaire you will receive your payment from this experiment.</span>
                     </div>
                 </div>
             {{ else }}

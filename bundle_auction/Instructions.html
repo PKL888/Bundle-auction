@@ -1,0 +1,37 @@
+{{ block title }}
+    Experiment instructions
+{{ endblock }}
+
+{{ block content }}
+    <div class="card bg-light mb-4" style="max-width: 650px; margin: 30px auto; border-radius: 8px;">
+        <div class="card-body text-center p-4">
+            
+            <h4 class="card-title mb-4" style="color: #333;">Experiment instructions</h4>
+            
+            <p style="font-size: 1.1em;" class="mb-3">
+                Please follow along and read the printed <strong>Experiment instructions</strong> document carefully. If you have any questions or are unsure about anything, please raise your hand and an experimenter will come to assist you.
+            </p>
+
+            <div class="p-3 my-3 bg-white rounded border text-start" style="font-size: 1.05em; line-height: 1.6;">
+                <div class="mb-1">
+                    <strong>Comprehension Quiz:</strong>
+                </div>
+                <div>
+                    After everyone has finished reviewing the Experiment instructions document, you will complete a short quiz to confirm your understanding of the rules.
+                </div>
+            </div>
+
+            <div class="alert alert-info text-start mt-4 mb-2" role="alert" style="font-size: 1.05em; line-height: 1.6;">
+                <div class="d-flex align-items-center">
+                    <span class="me-2">🛑</span>
+                    <span><strong>Please wait</strong> for the experimenter to finish reading the instructions out load to everyone before clicking <strong>Next</strong> to begin the quiz.</span>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="text-center">
+        {{ next_button }}
+    </div>
+{{ endblock }}
