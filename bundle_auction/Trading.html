@@ -373,6 +373,9 @@
         if (!rawValue || isNaN(price) || price <= 0 || !twoDecimalRegex.test(rawValue)) {
             return alert("Please enter a valid positive price with up to 2 decimal places.");
         }
+        else if (price > 50) {
+            return alert("Offers cannot exceed $50. Please enter a lower price.");
+        }
         submitSpecificOrder(action, price.toFixed(2), pType, safeId);
         
         inputEl.value = '';

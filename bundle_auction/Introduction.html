@@ -51,11 +51,14 @@
                 </div>
                 <ul class="mb-0 mt-2 ps-3">
                     {{ if is_buyer }}
-                        <li>As a <strong>Buyer</strong>, try to purchase units at a price <strong>lower</strong> than your <strong>Value</strong>.</li>
+                        <li>As a <strong>Buyer</strong>, you should purchase units at a price <strong>lower</strong> than your <strong>Value</strong>.</li>
                     {{ else }}
-                        <li>As a <strong>Seller</strong>, try to sell units at a price <strong>higher</strong> than your <strong>Cost</strong>.</li>
+                        <li>As a <strong>Seller</strong>, you should sell units at a price <strong>higher</strong> than your <strong>Cost</strong>.</li>
                     {{ endif }}
                 </ul>
+                <div class="mt-2 text-muted">
+                    In the 2 practice rounds, you will receive a warning before making an unprofitable trade. In the real rounds, no warnings will be shown -- pay close attention to your prices to avoid losses.
+                </div>
             </div>
 
             <div class="alert alert-info text-start mt-4 mb-2" role="alert" style="font-size: 1.05em; line-height: 1.6;">

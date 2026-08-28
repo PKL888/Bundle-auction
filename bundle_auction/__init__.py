@@ -18,7 +18,35 @@ CORRECT_ANSWERS = {
     'q8': 'D) Both A and B are correct.',
     'q9': 'Higher than the current highest Bid.',
     'q10': 'Lower than the current lowest Ask.',
-    'q11': 30.0,
+    'q11': 30.0
+}
+
+QUIZ_HINTS = {
+    'q1': 'Hint: Profit is calculated as Value minus Price.',
+    'q2': 'Hint: Profit is calculated as Price minus Cost.',
+    'q3': 'Hint: You will be randomly assigned a role as either a Buyer or a Seller for the entire experiment.',
+    'q4': 'Hint: For Buyers, the first unit in a round is worth the most. Each additional unit of that item is worth less than the previous one.',
+    'q5': 'Hint: For Sellers, the first unit in a round costs the least. Producing additional units of the same item becomes progressively more expensive.',
+    'q6': 'Hint: Subtracting a negative cost effectively adds to your profit.',
+    'q7': 'Hint: Review the Experiment instructions document.',
+    'q8': 'Hint: Review the Experiment instructions document.',
+    'q9': 'Hint: To become the active market bid, your offer must beat all current bids.',
+    'q10': 'Hint: To become the active market ask, your offer must undercut all current asks.',
+    'q11': 'Hint: Calculate your earnings using the conversion rate (30 experimental points = $1 AUD) and add the $10 participation fee.'
+}
+
+QUIZ_EXPLANATIONS = {
+    'q1': 'Correct! 15 - 9 = 6 points.',
+    'q2': 'Correct! 10 - 4 = 6 points.',
+    'q3': 'Correct! Your role remains fixed for the entire experiment.',
+    'q4': 'Correct! Values decrease for each additional unit bought.',
+    'q5': 'Correct! Costs increase for each additional unit produced.',
+    'q6': 'Correct! 8 - (-3) = 11 points.',
+    'q7': 'Correct! You can either submit a Bid or click a seller\'s Ask to execute a trade.',
+    'q8': 'Correct! You can either submit an Ask or click a buyer\'s Bid execute a trade.',
+    'q9': 'Correct! Bids must be strictly higher than the current highest bid.',
+    'q10': 'Correct! Asks must be strictly lower than the current lowest ask.',
+    'q11': 'Correct! ($10 + 600 points / 30 = $10 + $20 = $30).'
 }
 
 class C(BaseConstants):
@@ -67,7 +95,7 @@ class C(BaseConstants):
     
     # Fixed benefit parameters
     OMEGA = 10.0
-    THETA = 0.2
+    THETA = 0.18
 
 class Subsession(BaseSubsession):
     alpha = models.FloatField()
