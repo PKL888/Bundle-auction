@@ -52,13 +52,13 @@ QUIZ_EXPLANATIONS = {
 
 class C(BaseConstants):
     NAME_IN_URL = 'econ_lab'
-    PLAYERS_PER_GROUP = 4
+    PLAYERS_PER_GROUP = 8
 
-    TRADING_LENGTH = 30
-    WAITING_LENGTH = 10
+    TRADING_LENGTH = 180
+    WAITING_LENGTH = 30
 
     NUM_PRACTICE_ROUNDS = 2
-    NUM_REAL_ROUNDS = 4
+    NUM_REAL_ROUNDS = 12
     NUM_ROUNDS = NUM_PRACTICE_ROUNDS + NUM_REAL_ROUNDS
     
     ALL_PRODUCTS = ['Product A', 'Product B', 'Package', 'Package 1', 'Package 2']
