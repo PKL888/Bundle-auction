@@ -34,4 +34,22 @@
     <div class="text-center">
         {{ next_button }}
     </div>
+
+    <script>
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault(); 
+                
+                // Look for standard oTree next button
+                let nextButton = document.querySelector('.otree-btn-next');
+                if (nextButton) {
+                    nextButton.click();
+                } else {
+                    // Fallback to submitting the form directly
+                    let form = document.getElementById('form');
+                    if (form) form.submit();
+                }
+            }
+        });
+    </script>
 {{ endblock }}

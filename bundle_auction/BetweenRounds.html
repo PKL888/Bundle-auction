@@ -64,9 +64,26 @@
         </div>
     </div>
 
-    {{ if is_transition }}
+    {{ if is_transition or is_finished }}
         <div class="text-center">
             {{ next_button }}
         </div>
     {{ endif }}
+
+    <script>
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                // Ignore Enter in textareas (like comments)
+                if (event.target.tagName.toLowerCase() === 'textarea') return;
+
+                // Look for standard oTree next button
+                let nextButton = document.querySelector('.otree-btn-next');
+                if (nextButton) {
+                    event.preventDefault(); 
+                    nextButton.click();
+                }
+                // The fallback form.submit() has been removed to prevent out-of-bounds submissions
+            }
+        });
+    </script>
 {{ endblock }}

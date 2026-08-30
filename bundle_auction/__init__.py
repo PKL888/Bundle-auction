@@ -2,6 +2,7 @@ from otree.api import *
 from math import ceil
 import time
 import random
+import uuid
 
 doc = """
 Multi-attribute continuous double auction with dynamic marginal costs and values, multiple rounds, and fixed roles. Includes stacking and bundling treatments with either a single package or a menu.
@@ -44,19 +45,19 @@ QUIZ_EXPLANATIONS = {
     'q6': 'Correct! 8 - (-3) = 11 points.',
     'q7': 'Correct! You can either submit a Bid or click a seller\'s Ask to execute a trade.',
     'q8': 'Correct! You can either submit an Ask or click a buyer\'s Bid execute a trade.',
-    'q9': 'Correct! Bids must be strictly higher than the current highest bid.',
-    'q10': 'Correct! Asks must be strictly lower than the current lowest ask.',
-    'q11': 'Correct! ($10 + 600 points / 30 = $10 + $20 = $30).'
+    'q9': 'Correct! New bids must be strictly higher than the current highest bid.',
+    'q10': 'Correct! New asks must be strictly lower than the current lowest ask.',
+    'q11': 'Correct! $10 + 600 points ÷ 30 = $10 + $20 = $30.'
 }
 
 class C(BaseConstants):
     NAME_IN_URL = 'econ_lab'
-    PLAYERS_PER_GROUP = None
+    PLAYERS_PER_GROUP = 4
 
-    TRADING_LENGTH = 60
+    TRADING_LENGTH = 30
     WAITING_LENGTH = 10
 
-    NUM_PRACTICE_ROUNDS = 1
+    NUM_PRACTICE_ROUNDS = 2
     NUM_REAL_ROUNDS = 4
     NUM_ROUNDS = NUM_PRACTICE_ROUNDS + NUM_REAL_ROUNDS
     
@@ -75,22 +76,10 @@ class C(BaseConstants):
     REPETITIONS_PER_TREATMENT = 3
 
     SESSION_ORDERS = {
-        1:  ['HL', 'LH', 'LL', 'HH'],
-        2:  ['HL', 'LH', 'LL', 'HH'],
-        3:  ['HL', 'LH', 'LL', 'HH'],
-        4:  ['LL', 'HL', 'HH', 'LH'],
-        5:  ['LL', 'HL', 'HH', 'LH'],
-        6:  ['LH', 'LL', 'HH', 'HL'],
-        7:  ['LL', 'HL', 'HH', 'LH'],
-        8:  ['LH', 'LL', 'HH', 'HL'],
-        9:  ['LH', 'LL', 'HH', 'HL'],
-        10: ['HL', 'HH', 'LL', 'LH'],
-        11: ['HL', 'LH', 'LL', 'HH'],
-        12: ['LL', 'HL', 'HH', 'LH'],
-        13: ['HL', 'HH', 'LL', 'LH'],
-        14: ['HL', 'HH', 'LL', 'LH'],
-        15: ['LH', 'LL', 'HH', 'HL'],
-        16: ['HL', 'HH', 'LL', 'LH'],
+        1: ['HL', 'LH', 'LL', 'HH'],
+        2: ['LL', 'HL', 'HH', 'LH'],
+        3: ['LH', 'LL', 'HH', 'HL'],
+        4: ['HL', 'HH', 'LL', 'LH']
     }
     
     # Fixed benefit parameters
@@ -98,69 +87,90 @@ class C(BaseConstants):
     THETA = 0.18
 
 class Subsession(BaseSubsession):
+    pass
+
+def creating_session(subsession: Subsession):
+    if subsession.round_number == 1:
+        # Randomly allocate 16 participants across 2 groups of 8
+        subsession.group_randomly()
+        
+        # Fetch configurations
+        s1 = int(subsession.session.config.get('session_number', C.ACTIVE_SESSION_NUMBER))
+        s2 = int(subsession.session.config.get('session_number_2', s1 + 1))
+        
+        # Build sequences for both potential groups
+        seqs = {}
+        for g_idx, s_num in enumerate([s1, s2], start=1):
+            base_sequence = C.SESSION_ORDERS.get(s_num, ['HH', 'HL', 'LH', 'LL'])
+            real_sequence = []
+            for code in base_sequence:
+                real_sequence.extend([C.TREATMENT_PARAMS[code]] * C.REPETITIONS_PER_TREATMENT)
+            seqs[g_idx] = real_sequence
+            
+        subsession.session.vars['group_sequences'] = seqs
+    else:
+        subsession.group_like_round(1)
+
+    for group in subsession.get_groups():
+        g_idx = group.id_in_subsession # 1 for Group 1, 2 for Group 2
+        
+        # Assign parameters at the GROUP level
+        if subsession.round_number <= C.NUM_PRACTICE_ROUNDS:
+            group.alpha = 0.43
+            group.gamma = -0.52
+            group.omega = 12.0
+            group.theta = 0.19
+        else:
+            real_idx = subsession.round_number - C.NUM_PRACTICE_ROUNDS - 1
+            # Fetch the sequence assigned to this specific group index
+            group_seq = subsession.session.vars['group_sequences'].get(g_idx, subsession.session.vars['group_sequences'][1])
+            current_alpha, current_gamma = group_seq[real_idx]
+            group.alpha = current_alpha
+            group.gamma = current_gamma
+            group.omega = C.OMEGA
+            group.theta = C.THETA
+
+        # Calculate x_param
+        numerator = 1 - (group.alpha * group.gamma)
+        denominator = (group.alpha**2) - (group.alpha * group.gamma)
+        group.x_param = float(round(numerator / denominator))
+
+        # Assign fixed roles in Round 1, copy them in subsequent rounds
+        if subsession.round_number == 1:
+            players = group.get_players()
+            random.shuffle(players)
+            midpoint = len(players) // 2
+            buyer_count = 1
+            seller_count = 0
+            
+            for i, player in enumerate(players):
+                if i < midpoint:
+                    player.is_buyer = True
+                    player.buyer_id = buyer_count
+                    player.seller_type = ""
+                    buyer_count += 1
+                else:
+                    player.is_buyer = False
+                    player.buyer_id = 0
+                    if seller_count % 2 == 0:
+                        player.seller_type = 'A'
+                    else:
+                        player.seller_type = 'B'
+                    seller_count += 1
+        else:
+            for player in group.get_players():
+                past_player = player.in_round(1)
+                player.is_buyer = past_player.is_buyer
+                player.buyer_id = past_player.buyer_id
+                player.seller_type = past_player.seller_type
+
+class Group(BaseGroup):
+    start_timestamp = models.FloatField(initial=0.0)
     alpha = models.FloatField()
     gamma = models.FloatField()
     x_param = models.FloatField()
     omega = models.FloatField()
     theta = models.FloatField()
-
-def creating_session(subsession: Subsession):
-    if subsession.round_number == 1:
-        # Determine which session sequence to use
-        session_num = subsession.session.config.get('session_number', C.ACTIVE_SESSION_NUMBER)
-        base_sequence = C.SESSION_ORDERS.get(session_num, ['HH', 'HL', 'LH', 'LL'])
-
-        # Build the real sequence by repeating each treatment parameter 3 times in a row
-        real_sequence = []
-        for code in base_sequence:
-            params = C.TREATMENT_PARAMS[code]
-            real_sequence.extend([params] * C.REPETITIONS_PER_TREATMENT)
-            
-        subsession.session.vars['parameter_sequence'] = real_sequence
-
-    # Assign practice vs. real round parameters
-    if subsession.round_number <= C.NUM_PRACTICE_ROUNDS:
-        subsession.alpha = 0.43
-        subsession.gamma = -0.52
-        subsession.omega = 12.0
-        subsession.theta = 0.19
-    else:
-        real_idx = subsession.round_number - C.NUM_PRACTICE_ROUNDS - 1
-        current_alpha, current_gamma = subsession.session.vars['parameter_sequence'][real_idx]
-        subsession.alpha = current_alpha
-        subsession.gamma = current_gamma
-        subsession.omega = C.OMEGA
-        subsession.theta = C.THETA
-
-    # Calculate x_param based on the active round's alpha and gamma
-    numerator = 1 - (subsession.alpha * subsession.gamma)
-    denominator = (subsession.alpha**2) - (subsession.alpha * subsession.gamma)
-    subsession.x_param = float(round(numerator / denominator))
-
-    # Player role assignments (unchanged)
-    for group in subsession.get_groups():
-        players = group.get_players()
-        midpoint = len(players) // 2
-        buyer_count = 1
-        seller_count = 0
-        
-        for i, player in enumerate(players):
-            if i < midpoint:
-                player.is_buyer = True
-                player.buyer_id = buyer_count
-                player.seller_type = ""
-                buyer_count += 1
-            else:
-                player.is_buyer = False
-                player.buyer_id = 0
-                if seller_count % 2 == 0:
-                    player.seller_type = 'A'
-                else:
-                    player.seller_type = 'B'
-                seller_count += 1
-
-class Group(BaseGroup):
-    start_timestamp = models.FloatField(initial=0.0)
 
 class Player(BasePlayer):
     is_buyer = models.BooleanField()
@@ -341,29 +351,29 @@ class Player(BasePlayer):
 
     @property
     def underlying_qa(self):
-        x = int(self.subsession.x_param)
+        x = int(self.group.x_param)
         return self.trades_A + self.trades_Pkg + (self.trades_Pkg1 * 1.0) + (self.trades_Pkg2 * (1.0 / x))
 
     @property
     def underlying_qb(self):
-        x = int(self.subsession.x_param)
+        x = int(self.group.x_param)
         return self.trades_B + self.trades_Pkg + (self.trades_Pkg1 * (1.0 / x)) + (self.trades_Pkg2 * 1.0)
 
     @property
     def displayed_qa(self):
-        x = int(self.subsession.x_param)
+        x = int(self.group.x_param)
         return self.trades_A + self.trades_Pkg + (self.trades_Pkg1 * x) + (self.trades_Pkg2 * 1)
 
     @property
     def displayed_qb(self):
-        x = int(self.subsession.x_param)
+        x = int(self.group.x_param)
         return self.trades_B + self.trades_Pkg + (self.trades_Pkg1 * 1) + (self.trades_Pkg2 * x)
 
     def get_tc(self, qa, qb):
         if self.is_buyer: return 0.0
         
-        a = self.subsession.alpha
-        g = self.subsession.gamma
+        a = self.group.alpha
+        g = self.group.gamma
 
         if self.seller_type == 'A':
             cost_a = 0.5 * a * qa**2
@@ -384,8 +394,8 @@ class Player(BasePlayer):
             m = int(q)
             f = q % 1
             
-            omega = self.subsession.omega
-            theta = self.subsession.theta
+            omega = self.group.omega
+            theta = self.group.theta
 
             base_mv = omega - theta * self.buyer_id
             val_int = m * base_mv - theta * n_buyers * (m * (m - 1) / 2.0)            
@@ -398,7 +408,7 @@ class Player(BasePlayer):
     def evaluate_marginal_change(self, p_type, n_buyers):
         qa = self.underlying_qa
         qb = self.underlying_qb
-        x = self.subsession.x_param
+        x = self.group.x_param
 
         if p_type == 'Product A': delta_a, delta_b = 1.0, 0.0
         elif p_type == 'Product B': delta_a, delta_b = 0.0, 1.0
@@ -415,6 +425,7 @@ class Player(BasePlayer):
 class Order(ExtraModel):
     group = models.Link(Group)
     player = models.Link(Player)
+    order_id = models.StringField()
     is_bid = models.BooleanField()
     product_type = models.StringField()
     price = models.FloatField()
@@ -425,6 +436,8 @@ class Trade(ExtraModel):
     group = models.Link(Group)
     buyer = models.Link(Player)
     seller = models.Link(Player)
+    buyer_order_id = models.StringField()
+    seller_order_id = models.StringField()
     product_type = models.StringField()
     price = models.FloatField()
     buyer_profit = models.FloatField()
@@ -456,6 +469,89 @@ class Instructions(Page):
     def is_displayed(player: Player):
         return player.round_number == 1
     
+# class Quiz(Page):
+#     form_model = 'player'
+
+#     @staticmethod
+#     def is_displayed(player: Player):
+#         return player.round_number == 1
+
+#     @staticmethod
+#     def get_form_fields(player: Player):
+#         # Return ALL active questions so passed questions stay rendered on screen
+#         return get_active_quiz_questions(player)
+
+#     @staticmethod
+#     def js_vars(player: Player):
+#         # Pass status lists to JavaScript for visual styling in the browser
+#         return {
+#             'passed_questions': player.participant.vars.get('quiz_passed_questions', []),
+#             'incorrect_questions': player.participant.vars.get('quiz_incorrect_questions', [])
+#         }
+
+#     @staticmethod
+#     def vars_for_template(player: Player):
+#         active = get_active_quiz_questions(player)
+#         passed = player.participant.vars.get('quiz_passed_questions', [])
+        
+#         return {
+#             'total_count': len(active),
+#             'completed_count': len(passed),
+#             'is_retry': player.participant.vars.get('quiz_has_failed', False), # Dynamically reads failure state
+#             'is_review': False # Explicitly set to False for the active quiz
+#         }
+
+#     @staticmethod
+#     def error_message(player: Player, values):
+#         active = get_active_quiz_questions(player)
+        
+#         # Initialize session trackers on initial submission
+#         if 'quiz_passed_questions' not in player.participant.vars:
+#             player.participant.vars['quiz_passed_questions'] = []
+#         if 'quiz_attempts' not in player.participant.vars:
+#             player.participant.vars['quiz_attempts'] = {f'q{i}': 0 for i in range(1, 12)}
+
+#         passed = player.participant.vars['quiz_passed_questions']
+#         attempts = player.participant.vars['quiz_attempts']
+#         incorrect_list = []
+
+#         for q_name in active:
+#             # Skip checking questions that the participant already passed
+#             if q_name in passed:
+#                 continue
+
+#             attempts[q_name] += 1
+#             user_val = values.get(q_name)
+#             expected_val = CORRECT_ANSWERS.get(q_name)
+
+#             # Validate numeric inputs and radio choices
+#             is_correct = False
+#             if user_val is not None and user_val != '':
+#                 if isinstance(expected_val, (int, float)):
+#                     try:
+#                         clean_str = str(user_val).replace('$', '').strip()
+#                         is_correct = abs(float(clean_str) - float(expected_val)) < 1e-4
+#                     except (ValueError, TypeError):
+#                         is_correct = False
+#                 else:
+#                     is_correct = (user_val == expected_val)
+
+#             if is_correct:
+#                 if q_name not in passed:
+#                     passed.append(q_name)
+#             else:
+#                 incorrect_list.append(q_name)
+
+#         player.participant.vars['quiz_passed_questions'] = passed
+#         player.participant.vars['quiz_incorrect_questions'] = incorrect_list
+#         player.participant.vars['quiz_attempts'] = attempts
+
+#         if len(passed) < len(active):
+#             player.participant.vars['quiz_has_failed'] = True
+#             return f"You answered {len(incorrect_list)} question(s) incorrectly. Correct responses are locked in green. Please review and retry the highlighted question(s) in red."
+
+#         player.participant.vars['quiz_has_failed'] = False
+
 class Quiz(Page):
     form_model = 'player'
 
@@ -465,80 +561,44 @@ class Quiz(Page):
 
     @staticmethod
     def get_form_fields(player: Player):
-        # Return ALL active questions so passed questions stay rendered on screen
         return get_active_quiz_questions(player)
 
     @staticmethod
     def js_vars(player: Player):
-        # Pass status lists to JavaScript for visual styling in the browser
-        return {
-            'passed_questions': player.participant.vars.get('quiz_passed_questions', []),
-            'incorrect_questions': player.participant.vars.get('quiz_incorrect_questions', [])
-        }
-
-    @staticmethod
-    def vars_for_template(player: Player):
         active = get_active_quiz_questions(player)
-        passed = player.participant.vars.get('quiz_passed_questions', [])
-        
         return {
-            'total_count': len(active),
-            'completed_count': len(passed),
-            'is_retry': player.participant.vars.get('quiz_has_failed', False), # Dynamically reads failure state
-            'is_review': False # Explicitly set to False for the active quiz
+            'active_questions': active,
+            'correct_answers': {q: CORRECT_ANSWERS[q] for q in active},
+            'hints': {q: QUIZ_HINTS[q] for q in active},
+            'explanations': {q: QUIZ_EXPLANATIONS[q] for q in active},
         }
 
     @staticmethod
     def error_message(player: Player, values):
+        # Final server-side validation to ensure answers were not bypassed
         active = get_active_quiz_questions(player)
-        
-        # Initialize session trackers on initial submission
-        if 'quiz_passed_questions' not in player.participant.vars:
-            player.participant.vars['quiz_passed_questions'] = []
-        if 'quiz_attempts' not in player.participant.vars:
-            player.participant.vars['quiz_attempts'] = {f'q{i}': 0 for i in range(1, 12)}
-
-        passed = player.participant.vars['quiz_passed_questions']
-        attempts = player.participant.vars['quiz_attempts']
-        incorrect_list = []
-
+        errors = {}
         for q_name in active:
-            # Skip checking questions that the participant already passed
-            if q_name in passed:
-                continue
-
-            attempts[q_name] += 1
             user_val = values.get(q_name)
             expected_val = CORRECT_ANSWERS.get(q_name)
-
-            # Validate numeric inputs and radio choices
             is_correct = False
+            
             if user_val is not None and user_val != '':
                 if isinstance(expected_val, (int, float)):
                     try:
                         clean_str = str(user_val).replace('$', '').strip()
                         is_correct = abs(float(clean_str) - float(expected_val)) < 1e-4
                     except (ValueError, TypeError):
-                        is_correct = False
+                        pass
                 else:
                     is_correct = (user_val == expected_val)
 
-            if is_correct:
-                if q_name not in passed:
-                    passed.append(q_name)
-            else:
-                incorrect_list.append(q_name)
-
-        player.participant.vars['quiz_passed_questions'] = passed
-        player.participant.vars['quiz_incorrect_questions'] = incorrect_list
-        player.participant.vars['quiz_attempts'] = attempts
-
-        if len(passed) < len(active):
-            player.participant.vars['quiz_has_failed'] = True
-            return f"You answered {len(incorrect_list)} question(s) incorrectly. Correct responses are locked in green. Please review and retry the highlighted question(s) in red."
-
-        player.participant.vars['quiz_has_failed'] = False
-
+            if not is_correct:
+                errors[q_name] = "Invalid submission. Please complete the quiz properly."
+        
+        if errors:
+            return errors
+        
 class QuizReview(Page):
     template_name = 'bundle_auction/Quiz.html' 
     form_model = 'player'
@@ -578,7 +638,7 @@ class Introduction(Page):
     @staticmethod
     def vars_for_template(player):
         treatment = player.session.config.get('treatment', 'baseline')
-        x_weight = int(player.subsession.x_param) 
+        x_weight = int(player.group.x_param) 
         
         return {
             'treatment': treatment,
@@ -587,10 +647,13 @@ class Introduction(Page):
         }
 
 class ReadyToStart(WaitPage):
+    wait_for_all_groups = True
+
     @staticmethod
-    def after_all_players_arrive(group: Group):
-        # Record the exact time the round starts
-        group.start_timestamp = time.time()
+    def after_all_players_arrive(subsession: Subsession):
+        # Record the exact time the round starts for all groups simultaneously
+        for group in subsession.get_groups():
+            group.start_timestamp = time.time()
 
 class Trading(Page):
     timeout_seconds = C.TRADING_LENGTH
@@ -598,7 +661,7 @@ class Trading(Page):
     @staticmethod
     def vars_for_template(player):
         treatment = player.session.config.get('treatment', 'baseline')
-        x = int(player.subsession.x_param)
+        x = int(player.group.x_param)
 
         if treatment == 'single_package':
             active_products = [{'id': 'Package', 'safe_id': 'package', 'label': 'Package (1 &times; A, 1 &times; B)'}]
@@ -686,7 +749,8 @@ class Trading(Page):
 
                     new_order = Order.create(
                         group=group, player=player, is_bid=is_bid, product_type=p_type,
-                        price=new_price, timestamp=time.time(), is_active=True
+                        price=new_price, timestamp=time.time(), is_active=True,
+                        order_id=uuid.uuid4().hex
                     )
                     
                     opposite_is_bid = not new_order.is_bid
@@ -723,9 +787,15 @@ class Trading(Page):
                             elif p_type == 'Package 1': p_obj.trades_Pkg1 += 1
                             elif p_type == 'Package 2': p_obj.trades_Pkg2 += 1                        
                         
+                        # Identify which order belonged to which role
+                        b_order_id = new_order.order_id if new_order.is_bid else match.order_id
+                        s_order_id = match.order_id if new_order.is_bid else new_order.order_id
+
                         Trade.create(
-                            group=group, buyer=buyer, seller=seller, product_type=p_type, 
-                            price=trade_price, buyer_profit=b_profit, seller_profit=s_profit, timestamp=time.time()
+                            group=group, buyer=buyer, seller=seller, 
+                            buyer_order_id=b_order_id, seller_order_id=s_order_id, # Log the IDs
+                            product_type=p_type, price=trade_price, 
+                            buyer_profit=b_profit, seller_profit=s_profit, timestamp=time.time()
                         )
 
         active_orders = Order.filter(group=group, is_active=True)
@@ -779,13 +849,13 @@ class Trading(Page):
 class BetweenRounds(Page):
     @staticmethod
     def get_timeout_seconds(player):
-        if player.round_number == C.NUM_PRACTICE_ROUNDS:
+        if player.round_number == C.NUM_PRACTICE_ROUNDS or player.round_number == C.NUM_ROUNDS:
             return None
         return C.WAITING_LENGTH 
        
     @staticmethod
     def is_displayed(player): 
-        return player.round_number < C.NUM_ROUNDS
+        return player.round_number <= C.NUM_ROUNDS
     
     @staticmethod
     def vars_for_template(player):
@@ -830,38 +900,40 @@ class ThankYou(Page):
     @staticmethod
     def vars_for_template(player): 
         real_rounds = [p for p in player.in_all_rounds() if p.round_number > C.NUM_PRACTICE_ROUNDS]
-        return {'total_profit': sum([p.profit for p in real_rounds])}
+        
+        # Calculate the rounded AUD payoff exactly like the export
+        exact_payoff = float(player.participant.payoff_plus_participation_fee())
+        rounded_payoff = max(10, ceil(exact_payoff * 2) / 2)
+        
+        return {
+            'total_profit': sum([p.profit for p in real_rounds]),
+            'rounded_payoff': f"{rounded_payoff:.2f}"
+        }
 
 def custom_export(players):
-    """
-    Exports a single CSV file containing five distinct sections:
-    SECTION 1: Player Profit Summary Matrix 
-    SECTION 2: Detailed Event Log (Offers & Trades) with Elapsed Time
-    SECTION 3: Market Convergence (Sequential Trade Prices per Market)
-    SECTION 4: Player Trade Counts & Inventory Outcomes
-    SECTION 5: Round-Level Market Summaries (Profits & Total Trade Volumes)
-    """
     valid_sessions = {p.session for p in players}
 
+    def get_config_seq(group):
+        try:
+            s1 = int(group.session.config.get('session_number', C.ACTIVE_SESSION_NUMBER))
+        except (ValueError, TypeError):
+            s1 = C.ACTIVE_SESSION_NUMBER
+            
+        try:
+            s2 = int(group.session.config.get('session_number_2', s1 + 1))
+        except (ValueError, TypeError):
+            s2 = s1 + 1
+            
+        return s1 if group.id_in_subsession == 1 else s2
+
     # =========================================================
-    # SECTION 1: PLAYER PROFIT SUMMARY 
+    # SECTION 1: CUMULATIVE PROFIT & PAYOUT SUMMARY
     # =========================================================
-    yield ['=== SECTION 1: PLAYER PROFIT SUMMARY ===']
-    
-    profit_headers = [
-        'session_code', 'treatment', 'participant_code', 'player_id_in_group', 
-        'is_buyer', 'buyer_id', 'seller_type'
+    yield [
+        'record_type', 'session_code', 'treatment', 'group_id', 'config_session_number', 
+        'participant_code', 'player_id_in_group', 'is_buyer', 'buyer_id', 'seller_type',
+        'total_real_profit', 'total_payoff_AUD'
     ]
-    
-    for r in range(1, C.NUM_PRACTICE_ROUNDS + 1):
-        profit_headers.append(f'practice_round_{r}_profit')
-        
-    for r in range(1, C.NUM_REAL_ROUNDS + 1):
-        profit_headers.append(f'real_round_{r}_profit')
-        
-    profit_headers.extend(['total_real_profit', 'total_payoff_AUD'])
-    
-    yield profit_headers
 
     participants = list(set(p.participant for p in players if p.session in valid_sessions))
     participants.sort(key=lambda part: (part.session.code, part.get_players()[0].id_in_group))
@@ -874,44 +946,23 @@ def custom_export(players):
         session = first_p.session
         treatment = session.config.get('treatment', 'baseline')
         
-        row = [
-            session.code,
-            treatment,
-            part.code,
-            first_p.id_in_group,
-            first_p.is_buyer,
-            first_p.buyer_id,
-            first_p.seller_type
-        ]
-
-        practice_profit = 0.0
-        real_profit = 0.0
-
-        for p in player_in_rounds:
-            row.append(p.profit)
-            
-            if p.round_number <= C.NUM_PRACTICE_ROUNDS:
-                practice_profit += p.profit
-            else:
-                real_profit += p.profit
-
+        real_profit = sum([p.profit for p in player_in_rounds if p.round_number > C.NUM_PRACTICE_ROUNDS])
         payoff_aud = max(10, ceil(float(part.payoff_plus_participation_fee()) * 2) / 2)
 
-        row.extend([real_profit, payoff_aud])
-        yield row
-
-    yield []
-    yield []
+        yield [
+            'PROFIT_SUMMARY', session.code, treatment, first_p.group.id_in_subsession, get_config_seq(first_p.group),
+            part.code, first_p.id_in_group, first_p.is_buyer, first_p.buyer_id, first_p.seller_type,
+            real_profit, payoff_aud
+        ]
 
     # =========================================================
     # SECTION 2: EVENT LOG (Offers & Trades)
     # =========================================================
-    yield ['=== SECTION 2: EVENT LOG (OFFERS & TRADES) ===']
     yield [
-        'session_code', 'treatment', 'round_number', 'is_practice',
-        'alpha', 'gamma', 'x_param', 'group_id', 'event_type',
-        'timestamp', 'elapsed_time_seconds', 'product_type', 'price', 
-        'is_bid', 'player_id', 'trade_buyer_id', 'trade_seller_id', 
+        'record_type', 'session_code', 'treatment', 'group_id', 'config_session_number', 
+        'round_number', 'is_practice', 'timestamp', 'elapsed_time_seconds', 'event_type', 
+        'order_id', 'trade_buyer_order_id', 'trade_seller_order_id',
+        'product_type', 'price', 'is_bid', 'player_id', 'trade_buyer_id', 'trade_seller_id', 
         'trade_buyer_profit', 'trade_seller_profit'
     ]
 
@@ -920,60 +971,45 @@ def custom_export(players):
     for o in Order.filter():
         if o.group.session not in valid_sessions:
             continue
-        subsession = o.group.subsession
         
-        # Calculate elapsed time if start_timestamp exists
         start_time = o.group.field_maybe_none('start_timestamp')
         elapsed = (o.timestamp - start_time) if start_time else 0.0
 
         event_rows.append([
-            o.group.session.code,
-            o.group.session.config.get('treatment', 'baseline'),
-            subsession.round_number,
-            subsession.round_number <= C.NUM_PRACTICE_ROUNDS,
-            subsession.alpha, subsession.gamma, subsession.x_param,
-            o.group.id_in_subsession, 'Offer', o.timestamp, elapsed,
-            o.product_type, o.price, o.is_bid, o.player.id_in_group,
+            'EVENT_LOG', o.group.session.code, o.group.session.config.get('treatment', 'baseline'),
+            o.group.id_in_subsession, get_config_seq(o.group), o.player.round_number, 
+            o.player.round_number <= C.NUM_PRACTICE_ROUNDS, o.timestamp, elapsed, 'Offer',
+            o.order_id, '', '', o.product_type, o.price, o.is_bid, o.player.id_in_group, 
             '', '', '', ''
         ])
 
     for t in Trade.filter():
         if t.group.session not in valid_sessions:
             continue
-        subsession = t.group.subsession
         
-        # Calculate elapsed time if start_timestamp exists
         start_time = t.group.field_maybe_none('start_timestamp')
         elapsed = (t.timestamp - start_time) if start_time else 0.0
 
         event_rows.append([
-            t.group.session.code,
-            t.group.session.config.get('treatment', 'baseline'),
-            subsession.round_number,
-            subsession.round_number <= C.NUM_PRACTICE_ROUNDS,
-            subsession.alpha, subsession.gamma, subsession.x_param,
-            t.group.id_in_subsession, 'Trade', t.timestamp, elapsed,
-            t.product_type, t.price, '', '',
-            t.buyer.id_in_group, t.seller.id_in_group,
-            round(t.buyer_profit, 2), round(t.seller_profit, 2)
+            'EVENT_LOG', t.group.session.code, t.group.session.config.get('treatment', 'baseline'),
+            t.group.id_in_subsession, get_config_seq(t.group), t.buyer.round_number, 
+            t.buyer.round_number <= C.NUM_PRACTICE_ROUNDS, t.timestamp, elapsed, 'Trade',
+            '', t.buyer_order_id, t.seller_order_id, t.product_type, t.price, '', '', 
+            t.buyer.id_in_group, t.seller.id_in_group, round(t.buyer_profit, 2), round(t.seller_profit, 2)
         ])
 
-    # Sort primarily by timestamp (index 9) to maintain chronological order
-    event_rows.sort(key=lambda r: (r[0], r[2], r[9]))
+    # Sort strict chronological/hierarchical: Config Seq -> Group -> Round -> Timestamp
+    event_rows.sort(key=lambda r: (r[4], r[3], r[5], r[7]))
 
     for row in event_rows:
         yield row
-        
-    yield []
-    yield []
 
     # =========================================================
     # SECTION 3: MARKET CONVERGENCE (Trade Prices)
     # =========================================================
-    yield ['=== SECTION 3: MARKET CONVERGENCE (TRADE PRICES) ===']
     yield [
-        'session_code', 'treatment', 'round_number', 'is_practice', 
-        'product_type', 'ordered_trade_prices'
+        'record_type', 'session_code', 'treatment', 'group_id', 'config_session_number', 
+        'round_number', 'is_practice', 'product_type', 'ordered_trade_prices'
     ]
 
     trades_by_market = {}
@@ -984,11 +1020,13 @@ def custom_export(players):
             
         sess_code = t.group.session.code
         treatment = t.group.session.config.get('treatment', 'baseline')
-        rnd = t.group.subsession.round_number
+        rnd = t.buyer.round_number
         is_prac = rnd <= C.NUM_PRACTICE_ROUNDS
         ptype = t.product_type
+        g_id = t.group.id_in_subsession
+        c_seq = get_config_seq(t.group)
         
-        key = (sess_code, treatment, rnd, is_prac, ptype)
+        key = (sess_code, treatment, g_id, c_seq, rnd, is_prac, ptype)
         if key not in trades_by_market:
             trades_by_market[key] = []
             
@@ -999,75 +1037,48 @@ def custom_export(players):
         prices_str = ", ".join([str(price) for ts, price in sorted_trades])
         
         yield [
-            key[0], key[1], key[2], key[3], key[4],
+            'MARKET_CONVERGENCE', key[0], key[1], key[2], key[3], key[4], key[5], key[6],
             prices_str
         ]
 
-    yield []
-    yield []
-
     # =========================================================
-    # SECTION 4: PLAYER TRADE COUNTS & INVENTORY
+    # SECTION 4: PLAYER-ROUND PANEL (Inventory & Round Profits)
     # =========================================================
-    yield ['=== SECTION 4: PLAYER TRADE COUNTS & INVENTORY ===']
     yield [
-        'session_code', 'treatment', 'round_number', 'is_practice', 
-        'participant_code', 'player_id_in_group', 'is_buyer', 'buyer_id', 'seller_type', 
-        'alpha', 'gamma', 'x_param',
+        'record_type', 'session_code', 'treatment', 'group_id', 'config_session_number', 
+        'round_number', 'is_practice', 'participant_code', 'player_id_in_group', 
+        'is_buyer', 'buyer_id', 'seller_type', 'round_profit',
         'trades_A', 'trades_B', 'trades_Pkg', 'trades_Pkg1', 'trades_Pkg2',
         'underlying_qa', 'underlying_qb', 'displayed_qa', 'displayed_qb'
     ]
 
     all_players = [p for p in players if p.session in valid_sessions]
-    all_players.sort(key=lambda p: (p.session.code, p.round_number, p.id_in_group))
+    # Sort strictly by Config Seq -> Group -> Round -> Player ID
+    all_players.sort(key=lambda p: (get_config_seq(p.group), p.group.id_in_subsession, p.round_number, p.id_in_group))
     
     for p in all_players:
-        subsession = p.subsession
         yield [
-            p.session.code,
-            p.session.config.get('treatment', 'baseline'),
-            p.round_number,
-            p.round_number <= C.NUM_PRACTICE_ROUNDS,
-            p.participant.code,
-            p.id_in_group,
-            p.is_buyer,
-            p.buyer_id,
-            p.seller_type,
-            subsession.alpha,
-            subsession.gamma,
-            subsession.x_param,
-            p.trades_A,
-            p.trades_B,
-            p.trades_Pkg,
-            p.trades_Pkg1,
-            p.trades_Pkg2,
-            p.underlying_qa,
-            p.underlying_qb,
-            p.displayed_qa,
-            p.displayed_qb
+            'PLAYER_ROUND_PANEL', p.session.code, p.session.config.get('treatment', 'baseline'),
+            p.group.id_in_subsession, get_config_seq(p.group), p.round_number, p.round_number <= C.NUM_PRACTICE_ROUNDS,
+            p.participant.code, p.id_in_group, p.is_buyer, p.buyer_id, p.seller_type, p.profit,
+            p.trades_A, p.trades_B, p.trades_Pkg, p.trades_Pkg1, p.trades_Pkg2,
+            p.underlying_qa, p.underlying_qb, p.displayed_qa, p.displayed_qb
         ]
 
-    yield []
-    yield []
-
     # =========================================================
-    # SECTION 5: ROUND-LEVEL MARKET SUMMARIES
+    # SECTION 5: ROUND-LEVEL MARKET SUMMARIES (Efficiency Params)
     # =========================================================
-    yield ['=== SECTION 5: ROUND-LEVEL MARKET SUMMARIES ===']
     yield [
-        'session_code', 'treatment', 'round_number', 'is_practice', 'group_id',
-        'total_market_buyer_profit', 'total_market_seller_profit',
-        'total_trades_A', 'total_trades_B', 'total_trades_Pkg', 
-        'total_trades_Pkg1', 'total_trades_Pkg2'
+        'record_type', 'session_code', 'treatment', 'group_id', 'config_session_number', 
+        'round_number', 'is_practice', 'alpha', 'gamma', 'omega', 'theta', 'x_param',
+        'total_market_buyer_profit', 'total_market_seller_profit', 
+        'total_trades_A', 'total_trades_B', 'total_trades_Pkg', 'total_trades_Pkg1', 'total_trades_Pkg2'
     ]
 
-    # Gather all unique groups directly from the provided players list
     unique_groups = {p.group for p in players if p.session in valid_sessions}
-    
-    # Sort them chronologically
     valid_groups = sorted(
         list(unique_groups), 
-        key=lambda x: (x.session.code, x.round_number, x.id_in_subsession)
+        key=lambda x: (get_config_seq(x), x.id_in_subsession, x.round_number)
     )
 
     for g in valid_groups:
@@ -1075,7 +1086,6 @@ def custom_export(players):
         buyer_profit = sum(p.profit for p in group_players if p.is_buyer)
         seller_profit = sum(p.profit for p in group_players if not p.is_buyer)
         
-        # Directly query the Trade model to accurately count unique transactions
         group_trades = Trade.filter(group=g)
         trades_A = sum(1 for t in group_trades if t.product_type == 'Product A')
         trades_B = sum(1 for t in group_trades if t.product_type == 'Product B')
@@ -1084,34 +1094,20 @@ def custom_export(players):
         trades_Pkg2 = sum(1 for t in group_trades if t.product_type == 'Package 2')
         
         yield [
-            g.session.code,
-            g.session.config.get('treatment', 'baseline'),
-            g.round_number,
-            g.round_number <= C.NUM_PRACTICE_ROUNDS,
-            g.id_in_subsession,
-            buyer_profit,
-            seller_profit,
-            trades_A,
-            trades_B,
-            trades_Pkg,
-            trades_Pkg1,
-            trades_Pkg2
+            'MARKET_SUMMARY', g.session.code, g.session.config.get('treatment', 'baseline'),
+            g.id_in_subsession, get_config_seq(g), g.round_number, g.round_number <= C.NUM_PRACTICE_ROUNDS,
+            g.alpha, g.gamma, g.omega, g.theta, g.x_param,
+            buyer_profit, seller_profit, trades_A, trades_B, trades_Pkg, trades_Pkg1, trades_Pkg2
         ]
-
-    yield []
-    yield []
     
     # =========================================================
     # SECTION 6: QUIZ ATTEMPTS & QUESTIONNAIRE RESPONSES
     # =========================================================
-    yield ['=== SECTION 6: QUIZ ATTEMPTS & QUESTIONNAIRE RESPONSES ===']
-    
     section6_headers = [
-        'session_code', 'treatment', 'participant_code', 'player_id_in_group', 
-        'is_buyer', 'seller_type'
+        'record_type', 'session_code', 'treatment', 'group_id', 'config_session_number', 
+        'participant_code', 'player_id_in_group', 'is_buyer', 'seller_type'
     ]
     
-    # Add headers for quiz attempts (q1_attempts through q11_attempts)
     for i in range(1, 12):
         section6_headers.append(f'q{i}_attempts')
         
@@ -1134,12 +1130,8 @@ def custom_export(players):
         treatment = session.config.get('treatment', 'baseline')
         
         row = [
-            session.code,
-            treatment,
-            part.code,
-            first_p.id_in_group,
-            first_p.is_buyer,
-            first_p.seller_type
+            'QUESTIONNAIRE', session.code, treatment, first_p.group.id_in_subsession, get_config_seq(first_p.group),
+            part.code, first_p.id_in_group, first_p.is_buyer, first_p.seller_type
         ]
         
         attempts = part.vars.get('quiz_attempts', {})
@@ -1157,8 +1149,8 @@ def custom_export(players):
             
         yield row
 
-# page_sequence = [Welcome, Instructions, Quiz, QuizReview, Introduction, ReadyToStart, Trading, BetweenRounds, Questionnaire, ThankYou]
-page_sequence = [Welcome, Instructions, Introduction, ReadyToStart, Trading, BetweenRounds, Questionnaire, ThankYou]
-# page_sequence = [ReadyToStart, Trading, BetweenRounds, FinalResults, Questionnaire]
-# page_sequence = [ReadyToStart, Trading, BetweenRounds, FinalResults]
-# page_sequence = [Questionnaire]
+# Full sequence:
+page_sequence = [Welcome, Instructions, Quiz, Introduction, ReadyToStart, Trading, BetweenRounds, Questionnaire, ThankYou]
+
+# Test sequence:
+# page_sequence = [Introduction, ReadyToStart, Trading, BetweenRounds, ThankYou]

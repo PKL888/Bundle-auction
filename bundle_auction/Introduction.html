@@ -57,7 +57,7 @@
                     {{ endif }}
                 </ul>
                 <div class="mt-2 text-muted">
-                    In the 2 practice rounds, you will receive a warning before making an unprofitable trade. In the real rounds, no warnings will be shown -- pay close attention to your prices to avoid losses.
+                    In the practice rounds, you will receive a warning if you try to execute an unprofitable trade. In the real rounds, no warnings will be shown. Pay close attention to the prices listed on the market to avoid losses.
                 </div>
             </div>
 
@@ -74,4 +74,22 @@
     <div class="text-center">
         {{ next_button }}
     </div>
+
+    <script>
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault(); 
+                
+                // Look for standard oTree next button
+                let nextButton = document.querySelector('.otree-btn-next');
+                if (nextButton) {
+                    nextButton.click();
+                } else {
+                    // Fallback to submitting the form directly
+                    let form = document.getElementById('form');
+                    if (form) form.submit();
+                }
+            }
+        });
+    </script>
 {{ endblock }}

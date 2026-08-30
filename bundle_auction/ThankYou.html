@@ -27,25 +27,31 @@
             <p style="font-size: 1.25em;" class="mt-4 mb-3">
                 Your total final earnings: <br>
                 <span style="color: #28a745; font-size: 1.5em; font-weight: bold;">
-                    {{ participant.payoff_plus_participation_fee }} AUD
+                    {{ rounded_payoff }} AUD
                 </span>
             </p>
 
             <hr class="my-4">
 
             <div class="alert alert-info text-start mb-3" role="alert" style="font-size: 1.05em;">
-                <strong>To receive your payment:</strong>
+                <p class="fw-bold mb-2">To receive your payment:</p>
+                <ol class="mb-0 ps-3">
+                    <li>Copy your total earnings (<strong>{{ rounded_payoff }} AUD</strong>) onto your <strong>Receipt form</strong>.</li>
+                    <li>Fill in your personal details, seat number, and preferred payment option (cash or bank transfer).</li>
+                </ol>            
+            </div>
+
+            <div class="p-3 my-3 bg-white rounded border text-start" style="font-size: 1.05em; line-height: 1.6;">
+                <span><strong>Please stay seated</strong> until the experimenter calls you to the front desk. While you wait:</span>
                 <ol class="mb-0 mt-2 ps-3">
-                    <li>Please copy your total earnings (<strong>{{ participant.payoff_plus_participation_fee }} AUD</strong>) onto your official <strong>Receipt form</strong>, then fill in your personal details and your preferred payment option (cash or electronic bank transfer).</li>
-                    <li>Check that you have all of your personal belongings with you.</li>                    
-                    <li><strong>Collect all the materials on your desk</strong> (including the Information sheet, Experiment instructions, and Receipt form) <strong>and bring them with you to the front desk</strong>. You may take the Information sheet home with you, but please return all other materials to the experimenter.</li>
+                    <li>Gather your personal belongings.</li>
+                    <li>Collect all materials from your desk, including the Information sheet, Experiment instructions, and Receipt form.</li>
                 </ol>
+                <div class="mt-2">
+                    When called, bring these documents with you to the front desk. You may keep the Information sheet, but all other materials must be returned.
+                </div>
             </div>
 
         </div>
-    </div>
-
-    <div class="text-center">
-        {{ next_button }}
     </div>
 {{ endblock }}
