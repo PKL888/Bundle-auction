@@ -468,89 +468,6 @@ class Instructions(Page):
     @staticmethod
     def is_displayed(player: Player):
         return player.round_number == 1
-    
-# class Quiz(Page):
-#     form_model = 'player'
-
-#     @staticmethod
-#     def is_displayed(player: Player):
-#         return player.round_number == 1
-
-#     @staticmethod
-#     def get_form_fields(player: Player):
-#         # Return ALL active questions so passed questions stay rendered on screen
-#         return get_active_quiz_questions(player)
-
-#     @staticmethod
-#     def js_vars(player: Player):
-#         # Pass status lists to JavaScript for visual styling in the browser
-#         return {
-#             'passed_questions': player.participant.vars.get('quiz_passed_questions', []),
-#             'incorrect_questions': player.participant.vars.get('quiz_incorrect_questions', [])
-#         }
-
-#     @staticmethod
-#     def vars_for_template(player: Player):
-#         active = get_active_quiz_questions(player)
-#         passed = player.participant.vars.get('quiz_passed_questions', [])
-        
-#         return {
-#             'total_count': len(active),
-#             'completed_count': len(passed),
-#             'is_retry': player.participant.vars.get('quiz_has_failed', False), # Dynamically reads failure state
-#             'is_review': False # Explicitly set to False for the active quiz
-#         }
-
-#     @staticmethod
-#     def error_message(player: Player, values):
-#         active = get_active_quiz_questions(player)
-        
-#         # Initialize session trackers on initial submission
-#         if 'quiz_passed_questions' not in player.participant.vars:
-#             player.participant.vars['quiz_passed_questions'] = []
-#         if 'quiz_attempts' not in player.participant.vars:
-#             player.participant.vars['quiz_attempts'] = {f'q{i}': 0 for i in range(1, 12)}
-
-#         passed = player.participant.vars['quiz_passed_questions']
-#         attempts = player.participant.vars['quiz_attempts']
-#         incorrect_list = []
-
-#         for q_name in active:
-#             # Skip checking questions that the participant already passed
-#             if q_name in passed:
-#                 continue
-
-#             attempts[q_name] += 1
-#             user_val = values.get(q_name)
-#             expected_val = CORRECT_ANSWERS.get(q_name)
-
-#             # Validate numeric inputs and radio choices
-#             is_correct = False
-#             if user_val is not None and user_val != '':
-#                 if isinstance(expected_val, (int, float)):
-#                     try:
-#                         clean_str = str(user_val).replace('$', '').strip()
-#                         is_correct = abs(float(clean_str) - float(expected_val)) < 1e-4
-#                     except (ValueError, TypeError):
-#                         is_correct = False
-#                 else:
-#                     is_correct = (user_val == expected_val)
-
-#             if is_correct:
-#                 if q_name not in passed:
-#                     passed.append(q_name)
-#             else:
-#                 incorrect_list.append(q_name)
-
-#         player.participant.vars['quiz_passed_questions'] = passed
-#         player.participant.vars['quiz_incorrect_questions'] = incorrect_list
-#         player.participant.vars['quiz_attempts'] = attempts
-
-#         if len(passed) < len(active):
-#             player.participant.vars['quiz_has_failed'] = True
-#             return f"You answered {len(incorrect_list)} question(s) incorrectly. Correct responses are locked in green. Please review and retry the highlighted question(s) in red."
-
-#         player.participant.vars['quiz_has_failed'] = False
 
 class Quiz(Page):
     form_model = 'player'
@@ -598,38 +515,7 @@ class Quiz(Page):
         
         if errors:
             return errors
-        
-class QuizReview(Page):
-    template_name = 'bundle_auction/Quiz.html' 
-    form_model = 'player'
-
-    @staticmethod
-    def is_displayed(player: Player):
-        return player.round_number == 1
-
-    @staticmethod
-    def get_form_fields(player: Player):
-        return get_active_quiz_questions(player)
-
-    @staticmethod
-    def js_vars(player: Player):
-        # Pass all active questions as passed so every field is rendered green & locked
-        return {
-            'passed_questions': player.participant.vars.get('quiz_passed_questions', []),
-            'incorrect_questions': []
-        }
-
-    @staticmethod
-    def vars_for_template(player: Player):
-        active = get_active_quiz_questions(player)
-        passed = player.participant.vars.get('quiz_passed_questions', [])
-        return {
-            'total_count': len(active),
-            'completed_count': len(passed),
-            'is_retry': False, # Explicitly disable the retry banner on the review page
-            'is_review': True  # Triggers the success banner in Quiz.html
-        }
-    
+ 
 class Introduction(Page):
     @staticmethod
     def is_displayed(player):
