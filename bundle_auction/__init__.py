@@ -79,7 +79,8 @@ class C(BaseConstants):
         1: ['HL', 'LH', 'LL', 'HH'],
         2: ['LL', 'HL', 'HH', 'LH'],
         3: ['LH', 'LL', 'HH', 'HL'],
-        4: ['HL', 'HH', 'LL', 'LH']
+        4: ['HL', 'HH', 'LL', 'LH'],
+        5: ['HH', 'LH', 'HL', 'LL']
     }
     
     # Fixed benefit parameters
