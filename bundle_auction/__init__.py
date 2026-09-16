@@ -87,6 +87,9 @@ class C(BaseConstants):
     OMEGA = 10.0
     THETA = 0.18
 
+    # Fixed weight multiplier for menu
+    SUBOPTIMAL_MULTIPLIER = 4
+
 class Subsession(BaseSubsession):
     pass
 
@@ -113,9 +116,14 @@ def creating_session(subsession: Subsession):
         subsession.group_like_round(1)
 
     for group in subsession.get_groups():
-        g_idx = group.id_in_subsession # 1 for Group 1, 2 for Group 2
+        g_idx = group.id_in_subsession
+
+        fallback = subsession.session.config.get('treatment', 'baseline')
+        if g_idx == 1:
+            group.treatment = subsession.session.config.get('treatment_group_1', fallback)
+        else:
+            group.treatment = subsession.session.config.get('treatment_group_2', fallback)
         
-        # Assign parameters at the GROUP level
         if subsession.round_number <= C.NUM_PRACTICE_ROUNDS:
             group.alpha = 0.43
             group.gamma = -0.52
@@ -123,7 +131,6 @@ def creating_session(subsession: Subsession):
             group.theta = 0.19
         else:
             real_idx = subsession.round_number - C.NUM_PRACTICE_ROUNDS - 1
-            # Fetch the sequence assigned to this specific group index
             group_seq = subsession.session.vars['group_sequences'].get(g_idx, subsession.session.vars['group_sequences'][1])
             current_alpha, current_gamma = group_seq[real_idx]
             group.alpha = current_alpha
@@ -131,12 +138,15 @@ def creating_session(subsession: Subsession):
             group.omega = C.OMEGA
             group.theta = C.THETA
 
-        # Calculate x_param
         numerator = 1 - (group.alpha * group.gamma)
         denominator = (group.alpha**2) - (group.alpha * group.gamma)
-        group.x_param = float(round(numerator / denominator))
+        w_star = float(round(numerator / denominator))
 
-        # Assign fixed roles in Round 1, copy them in subsequent rounds
+        if group.treatment == 'suboptimal_menu':
+            group.x_param = w_star * C.SUBOPTIMAL_MULTIPLIER
+        else:
+            group.x_param = w_star
+
         if subsession.round_number == 1:
             players = group.get_players()
             random.shuffle(players)
@@ -166,6 +176,7 @@ def creating_session(subsession: Subsession):
                 player.seller_type = past_player.seller_type
 
 class Group(BaseGroup):
+    treatment = models.StringField()
     start_timestamp = models.FloatField(initial=0.0)
     alpha = models.FloatField()
     gamma = models.FloatField()
@@ -447,7 +458,7 @@ class Trade(ExtraModel):
 
 def get_active_quiz_questions(player: Player):
     """Filter quiz questions based on role (Buyer/Seller) and Group Treatment."""
-    treatment = player.session.config.get('treatment', 'baseline')
+    treatment = player.group.treatment
     is_buyer = player.is_buyer
 
     # Core questions for all participants
@@ -524,7 +535,7 @@ class Introduction(Page):
 
     @staticmethod
     def vars_for_template(player):
-        treatment = player.session.config.get('treatment', 'baseline')
+        treatment = player.group.treatment
         x_weight = int(player.group.x_param) 
         
         return {
@@ -547,12 +558,12 @@ class Trading(Page):
 
     @staticmethod
     def vars_for_template(player):
-        treatment = player.session.config.get('treatment', 'baseline')
+        treatment = player.group.treatment
         x = int(player.group.x_param)
 
         if treatment == 'single_package':
             active_products = [{'id': 'Package', 'safe_id': 'package', 'label': 'Package (1 &times; A, 1 &times; B)'}]
-        elif treatment == 'package_menu':
+        elif treatment in ['package_menu', 'suboptimal_menu']:
             active_products = [
                 {'id': 'Package 1', 'safe_id': 'package-1', 'label': f'Package 1 ({x} &times; A, 1 &times; B)'},
                 {'id': 'Package 2', 'safe_id': 'package-2', 'label': f'Package 2 (1 &times; A, {x} &times; B)'}
@@ -576,11 +587,11 @@ class Trading(Page):
         }    
     @staticmethod
     def js_vars(player):
-        treatment = player.session.config.get('treatment', 'baseline')
+        treatment = player.group.treatment
         
         if treatment == 'single_package':
             active_products = [{'id': 'Package', 'safe_id': 'package', 'label': 'Package'}]
-        elif treatment == 'package_menu':
+        elif treatment in ['package_menu', 'suboptimal_menu']:
             active_products = [
                 {'id': 'Package 1', 'safe_id': 'package-1', 'label': 'Package 1'},
                 {'id': 'Package 2', 'safe_id': 'package-2', 'label': 'Package 2'}
@@ -603,10 +614,10 @@ class Trading(Page):
         players = group.get_players()
         n_buyers = sum([1 for p in players if p.is_buyer])
 
-        treatment = player.session.config.get('treatment', 'baseline')
+        treatment = player.group.treatment
         
         if treatment == 'single_package': valid_products = ['Package']
-        elif treatment == 'package_menu': valid_products = ['Package 1', 'Package 2']
+        elif treatment in ['package_menu', 'suboptimal_menu']: valid_products = ['Package 1', 'Package 2']
         else: valid_products = ['Product A', 'Product B']
 
         if 'action' in data:
@@ -831,7 +842,7 @@ def custom_export(players):
         
         first_p = player_in_rounds[0]
         session = first_p.session
-        treatment = session.config.get('treatment', 'baseline')
+        treatment = first_p.group.treatment
         
         real_profit = sum([p.profit for p in player_in_rounds if p.round_number > C.NUM_PRACTICE_ROUNDS])
         payoff_aud = max(10, ceil(float(part.payoff_plus_participation_fee()) * 2) / 2)
@@ -863,7 +874,7 @@ def custom_export(players):
         elapsed = (o.timestamp - start_time) if start_time else 0.0
 
         event_rows.append([
-            'EVENT_LOG', o.group.session.code, o.group.session.config.get('treatment', 'baseline'),
+            'EVENT_LOG', o.group.session.code, o.group.treatment,
             o.group.id_in_subsession, get_config_seq(o.group), o.player.round_number, 
             o.player.round_number <= C.NUM_PRACTICE_ROUNDS, o.timestamp, elapsed, 'Offer',
             o.order_id, '', '', o.product_type, o.price, o.is_bid, o.player.id_in_group, 
@@ -878,7 +889,7 @@ def custom_export(players):
         elapsed = (t.timestamp - start_time) if start_time else 0.0
 
         event_rows.append([
-            'EVENT_LOG', t.group.session.code, t.group.session.config.get('treatment', 'baseline'),
+            'EVENT_LOG', t.group.session.code, t.group.treatment,
             t.group.id_in_subsession, get_config_seq(t.group), t.buyer.round_number, 
             t.buyer.round_number <= C.NUM_PRACTICE_ROUNDS, t.timestamp, elapsed, 'Trade',
             '', t.buyer_order_id, t.seller_order_id, t.product_type, t.price, '', '', 
@@ -906,7 +917,7 @@ def custom_export(players):
             continue
             
         sess_code = t.group.session.code
-        treatment = t.group.session.config.get('treatment', 'baseline')
+        treatment = t.group.treatment
         rnd = t.buyer.round_number
         is_prac = rnd <= C.NUM_PRACTICE_ROUNDS
         ptype = t.product_type
@@ -945,7 +956,7 @@ def custom_export(players):
     
     for p in all_players:
         yield [
-            'PLAYER_ROUND_PANEL', p.session.code, p.session.config.get('treatment', 'baseline'),
+            'PLAYER_ROUND_PANEL', p.session.code, p.group.treatment,
             p.group.id_in_subsession, get_config_seq(p.group), p.round_number, p.round_number <= C.NUM_PRACTICE_ROUNDS,
             p.participant.code, p.id_in_group, p.is_buyer, p.buyer_id, p.seller_type, p.profit,
             p.trades_A, p.trades_B, p.trades_Pkg, p.trades_Pkg1, p.trades_Pkg2,
@@ -981,7 +992,7 @@ def custom_export(players):
         trades_Pkg2 = sum(1 for t in group_trades if t.product_type == 'Package 2')
         
         yield [
-            'MARKET_SUMMARY', g.session.code, g.session.config.get('treatment', 'baseline'),
+            'MARKET_SUMMARY', g.session.code, g.treatment,
             g.id_in_subsession, get_config_seq(g), g.round_number, g.round_number <= C.NUM_PRACTICE_ROUNDS,
             g.alpha, g.gamma, g.omega, g.theta, g.x_param,
             buyer_profit, seller_profit, trades_A, trades_B, trades_Pkg, trades_Pkg1, trades_Pkg2
@@ -1014,7 +1025,7 @@ def custom_export(players):
         first_p = player_in_rounds[0]
         last_p = player_in_rounds[-1]
         session = first_p.session
-        treatment = session.config.get('treatment', 'baseline')
+        treatment = first_p.group.treatment
         
         row = [
             'QUESTIONNAIRE', session.code, treatment, first_p.group.id_in_subsession, get_config_seq(first_p.group),

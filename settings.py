@@ -28,6 +28,26 @@ SESSION_CONFIGS = [
         session_number=1,
         session_number_2=2
     ),
+    dict(
+        name='auction_suboptimal_only',
+        display_name="Double auction - Suboptimal Menu",
+        app_sequence=['bundle_auction'],
+        num_demo_participants=4,
+        treatment_group_1='suboptimal_menu',
+        treatment_group_2='suboptimal_menu',
+        session_number=1,
+        session_number_2=2
+    ),
+    dict(
+        name='auction_mixed_menu',
+        display_name="Double auction - Mixed Menu (Optimal & Suboptimal)",
+        app_sequence=['bundle_auction'],
+        num_demo_participants=4,
+        treatment_group_1='package_menu',
+        treatment_group_2='suboptimal_menu',
+        session_number=1,
+        session_number_2=2
+    ),
 ]
 
 # if you set a property in SESSION_CONFIG_DEFAULTS, it will be inherited by all configs
