@@ -1,0 +1,89 @@
+{{ block title }}
+    {{ if is_transition }}
+        Practice rounds complete
+    {{ elif is_finished}}
+        Trading phase complete
+    {{ else }}
+        Round complete
+    {{ endif }}
+{{ endblock }}
+
+{{ block content }}
+    <div class="card bg-light mb-4" style="max-width: 650px; margin: 30px auto; border-radius: 8px;">
+        <div class="card-body text-center p-4">
+            
+            <h4 class="card-title mb-4" style="color: #333;">{{ display_round }} concluded</h4>
+            
+            {{ if is_practice }}
+                <p style="font-size: 1.15em;" class="mb-3">
+                    Your profit from this practice round: <br>
+                    <span style="font-size: 1.4em; font-weight: bold; color: #007bff;">
+                        {{ round_profit|to2 }} experimental points
+                    </span>
+                </p>
+
+                <div class="p-3 my-3 bg-white rounded border text-center text-muted" style="font-size: 0.95em;">
+                    <em>Note: Practice profits do not count toward your final earnings.</em>
+                </div>
+            {{ else }}
+                <p style="font-size: 1.15em;" class="mb-3">
+                    Your profit from this round: <br>
+                    <span style="font-size: 1.4em; font-weight: bold; color: #28a745;">
+                        {{ round_profit|to2 }} experimental points
+                    </span>
+                </p>
+
+                <div class="p-3 my-3 bg-white rounded border text-start" style="font-size: 1.05em; line-height: 1.6;">
+                    <div class="d-flex justify-content-between">
+                        <span><strong>Total profit so far:</strong></span>
+                        <span class="fw-bold">{{ total_profit|to2 }} points</span>
+                    </div>
+                </div>
+            {{ endif }}
+
+            {{ if is_transition }}
+                <div class="alert alert-info text-start mt-4 mb-2" role="alert" style="font-size: 1.05em; line-height: 1.6;">
+                    <div class="d-flex align-items-center">
+                        <span class="me-2">👉</span>
+                        <span>The practice rounds are now complete. <strong>Please wait for the experimenter's instructions</strong> before clicking <strong>Next</strong> to begin the main experiment.</span>
+                    </div>
+                </div>
+            {{ elif is_finished }}
+                <div class="alert alert-info text-start mt-4 mb-2" role="alert" style="font-size: 1.05em; line-height: 1.6;">
+                    <div class="d-flex align-items-center">
+                        <span class="me-2">👉</span>
+                        <span>Click <strong>Next</strong> below to proceed to a short post-experiment questionnaire. After you complete the questionnaire you will receive your payment from this experiment.</span>
+                    </div>
+                </div>
+            {{ else }}
+                <div class="text-muted mt-4 mb-2" style="font-size: 0.95em;">
+                    <em>The next round will start automatically in 30 seconds.</em>
+                </div>
+            {{ endif }}
+
+        </div>
+    </div>
+
+    {{ if is_transition or is_finished }}
+        <div class="text-center">
+            {{ next_button }}
+        </div>
+    {{ endif }}
+
+    <script>
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                // Ignore Enter in textareas (like comments)
+                if (event.target.tagName.toLowerCase() === 'textarea') return;
+
+                // Look for standard oTree next button
+                let nextButton = document.querySelector('.otree-btn-next');
+                if (nextButton) {
+                    event.preventDefault(); 
+                    nextButton.click();
+                }
+                // The fallback form.submit() has been removed to prevent out-of-bounds submissions
+            }
+        });
+    </script>
+{{ endblock }}

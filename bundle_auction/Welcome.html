@@ -1,0 +1,83 @@
+{{ block title }}
+    Welcome to this experiment on economic decision-making
+{{ endblock }}
+
+{{ block content }}
+    <div class="card bg-light mb-4" style="max-width: 650px; margin: 30px auto; border-radius: 8px;">
+        <div class="card-body text-center p-4">
+            
+            <h4 class="card-title mb-4" style="color: #333;">Welcome to the experiment</h4>
+            
+            <p style="font-size: 1.15em;" class="mb-4">
+                Thank you for participating in today's session.
+            </p>
+
+            <div class="alert alert-info text-start mb-4" role="alert" style="font-size: 1.05em;">
+                <strong>Before we begin:</strong>
+                <ol class="mb-0 mt-2 ps-3" style="line-height: 1.6;">
+                    <li>Please read the provided <strong>Information sheet</strong>.</li>
+                    <li>Fill in and sign the physical <strong>Consent form</strong> on your desk.</li>
+                </ol>
+                <div class="mt-2">Please do not communicate with other participants during the experiment. If you have any questions at any point, please raise your hand, and an experimenter will come to assist you.</div>
+            </div>
+
+            <div class="p-3 my-3 bg-white rounded border text-center">
+                <strong class="d-block mb-3" style="color: #333; font-size: 1.05em;">Session Outline</strong>
+                
+                <div class="d-flex flex-column flex-md-row align-items-center justify-content-between gap-2">
+                    <div class="p-2 px-3 bg-light border fw-bold text-primary shadow-sm" style="font-size: 0.85em;">
+                        Introduction & instructions
+                    </div>
+                    <span class="text-muted d-none d-md-inline fw-bold">➔</span>
+                    <span class="text-muted d-md-none fw-bold">↓</span>
+
+                    <div class="p-2 px-3 bg-light border fw-bold text-primary shadow-sm" style="font-size: 0.85em;">
+                        Comprehension quiz
+                    </div>
+                    <span class="text-muted d-none d-md-inline fw-bold">➔</span>
+                    <span class="text-muted d-md-none fw-bold">↓</span>
+
+                    <div class="p-2 px-3 bg-light border fw-bold text-primary shadow-sm" style="font-size: 0.85em;">
+                        Trading phase
+                    </div>
+                    <span class="text-muted d-none d-md-inline fw-bold">➔</span>
+                    <span class="text-muted d-md-none fw-bold">↓</span>
+
+                    <div class="p-2 px-3 bg-light border fw-bold text-primary shadow-sm" style="font-size: 0.85em;">
+                        Post-experiment questionnaire
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-3 my-3 bg-white rounded border text-start" style="font-size: 1.05em; line-height: 1.6;">
+                <div class="d-flex align-items-center">
+                    <span class="me-2">👉</span>
+                    <span><strong>Please wait for the experimenter</strong> to provide further instructions before clicking the button below to proceed.</span>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="text-center">
+        {{ next_button }}
+    </div>
+
+    <script>
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault(); 
+                
+                // Look for standard oTree next button
+                let nextButton = document.querySelector('.otree-btn-next');
+                if (nextButton) {
+                    nextButton.click();
+                } else {
+                    // Fallback to submitting the form directly
+                    let form = document.getElementById('form');
+                    if (form) form.submit();
+                }
+            }
+        });
+    </script>
+{{ endblock }}

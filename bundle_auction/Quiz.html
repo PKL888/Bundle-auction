@@ -1,0 +1,176 @@
+{{ block title }}
+    Comprehension quiz
+{{ endblock }}
+
+{{ block content }}
+    <style>
+        /* Hide all standard oTree fields by default */
+        .otree-form-field { display: none; }
+        
+        .feedback-box {
+            border-radius: 6px;
+            padding: 14px;
+            margin-bottom: 18px;
+            font-weight: bold;
+            display: none;
+        }
+        .feedback-correct {
+            border: 2px solid #198754;
+            background-color: #f8fff9;
+            color: #198754;
+        }
+        .feedback-incorrect {
+            border: 2px solid #dc3545;
+            background-color: #fff8f8;
+            color: #dc3545;
+        }
+    </style>
+
+    <div class="card bg-light mb-4" style="max-width: 700px; margin: 30px auto; border-radius: 8px;">
+        <div class="card-body p-4">
+            
+            <h4 class="card-title mb-4 text-center" style="color: #333;">Comprehension quiz</h4>
+
+            <!-- Progress Tracker -->
+            <div id="progress-container" class="alert alert-info d-flex justify-content-between align-items-center mb-4">
+                <strong>Progress:</strong>
+                <span class="badge bg-primary fs-6" id="progress-text"></span>
+            </div>
+
+            <!-- Question Display Area -->
+            <div class="p-4 my-3 bg-white rounded border text-start" id="question-container">
+                {{ formfields }}
+            </div>
+
+            <!-- Feedback Area -->
+            <div id="feedback-area" class="feedback-box"></div>
+
+            <!-- Action Buttons -->
+            <div class="text-center mt-4">
+                <button type="button" id="submit-ans-btn" class="btn btn-primary btn-lg" onclick="checkCurrentAnswer()">Submit Answer</button>
+                <button type="button" id="next-q-btn" class="btn btn-success btn-lg" style="display: none;" onclick="nextQuestion()">Continue to Next Question</button>
+            </div>
+
+            <!-- Completion Message -->
+            <div id="completion-message" class="alert alert-success text-center mt-4" style="display: none; font-size: 1.05em;">
+                <strong>Excellent work!</strong> You have answered all quiz questions correctly. Click below to proceed to the experiment overview.
+            </div>
+
+            <div class="text-center mt-3">
+                <button type="button" id="final-submit-btn" class="btn btn-primary btn-lg" style="display: none;" onclick="document.getElementById('form').submit();">Finish & Proceed</button>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        let questions = js_vars.active_questions;
+        let currentIndex = 0;
+
+        document.addEventListener("DOMContentLoaded", function() {
+            // Apply formatting to inputs
+            let numericInputs = document.querySelectorAll('.form-group input[type="number"], .form-group input[type="text"]');
+            numericInputs.forEach(function(input) {
+                input.setAttribute('placeholder', '$0.00');
+            });
+
+            // Initialize the first question
+            updateUI();
+        });
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault(); // Prevent default form submission
+                
+                let submitBtn = document.getElementById('submit-ans-btn');
+                let nextBtn = document.getElementById('next-q-btn');
+                let finalBtn = document.getElementById('final-submit-btn');
+                
+                // Trigger the button that is currently active on the screen
+                if (submitBtn && submitBtn.style.display !== 'none') {
+                    submitBtn.click();
+                } else if (nextBtn && nextBtn.style.display !== 'none') {
+                    nextBtn.click();
+                } else if (finalBtn && finalBtn.style.display !== 'none') {
+                    finalBtn.click();
+                }
+            }
+        });
+
+        function updateUI() {
+            document.getElementById('progress-text').innerText = (currentIndex + 1) + " / " + questions.length;
+            
+            // Hide all fields, show only the active one
+            document.querySelectorAll('.mb-3, .form-group').forEach(el => el.style.display = 'none');
+            let currentField = document.querySelector('div.mb-3:has([name="' + questions[currentIndex] + '"])') || 
+                               document.querySelector('div.form-group:has([name="' + questions[currentIndex] + '"])');
+            if(currentField) currentField.style.display = 'block';
+
+            // Reset UI states
+            document.getElementById('feedback-area').style.display = 'none';
+            document.getElementById('submit-ans-btn').style.display = 'inline-block';
+            document.getElementById('next-q-btn').style.display = 'none';
+        }
+
+        function checkCurrentAnswer() {
+            let currentQ = questions[currentIndex];
+            let expected = js_vars.correct_answers[currentQ];
+            
+            let radioElem = document.querySelector('input[name="' + currentQ + '"]:checked');
+            let inputElem = document.querySelector('input[name="' + currentQ + '"]');
+            let userVal = radioElem ? radioElem.value : (inputElem ? inputElem.value : null);
+
+            if (userVal === null || userVal.trim() === '') {
+                alert("Please select or enter an answer before submitting.");
+                return;
+            }
+
+            let isCorrect = false;
+            if (typeof expected === 'number') {
+                let cleanStr = userVal.replace('$', '').trim();
+                let numVal = parseFloat(cleanStr);
+                isCorrect = Math.abs(numVal - expected) < 0.0001;
+            } else {
+                isCorrect = (userVal === expected);
+            }
+
+            let feedbackBox = document.getElementById('feedback-area');
+            feedbackBox.style.display = 'block';
+
+            if (isCorrect) {
+                feedbackBox.className = 'feedback-box feedback-correct';
+                feedbackBox.innerHTML = '✓ ' + js_vars.explanations[currentQ];
+                
+                // Lock inputs
+                if(inputElem) inputElem.readOnly = true;
+                document.querySelectorAll('input[name="' + currentQ + '"]').forEach(r => r.disabled = true);
+
+                document.getElementById('submit-ans-btn').style.display = 'none';
+                document.getElementById('next-q-btn').style.display = 'inline-block';
+            } else {
+                feedbackBox.className = 'feedback-box feedback-incorrect';
+                feedbackBox.innerHTML = '✗ Incorrect. ' + js_vars.hints[currentQ];
+            }
+        }
+
+        function nextQuestion() {
+            currentIndex++;
+            if (currentIndex < questions.length) {
+                updateUI();
+            } else {
+                // Quiz complete
+                document.getElementById('progress-container').style.display = 'none';
+                document.getElementById('question-container').style.display = 'none';
+                document.getElementById('feedback-area').style.display = 'none';
+                document.getElementById('submit-ans-btn').style.display = 'none';
+                document.getElementById('next-q-btn').style.display = 'none';
+                
+                document.getElementById('completion-message').style.display = 'block';
+                document.getElementById('final-submit-btn').style.display = 'inline-block';
+                
+                // Re-enable inputs just before submit to ensure standard form serialization grabs the values
+                document.querySelectorAll('input').forEach(r => { r.disabled = false; r.readOnly = false; });
+            }
+        }
+    </script>
+{{ endblock }}

@@ -1,0 +1,57 @@
+{{ block title }}
+    Thank you for participating
+{{ endblock }}
+
+{{ block content }}
+    <div class="card bg-light mb-4" style="max-width: 650px; margin: 30px auto; border-radius: 8px;">
+        <div class="card-body text-center p-4">
+            
+            <h4 class="card-title mb-4" style="color: #333;">Summary of earnings</h4>
+            
+            <p style="font-size: 1.15em;" class="mb-3">
+                Total profit across all rounds: <br>
+                <strong>{{ total_profit|to2 }} experimental points</strong>
+            </p>
+
+            <div class="p-3 my-3 bg-white rounded border text-start" style="font-size: 1.05em; line-height: 1.6;">
+                <div class="d-flex justify-content-between">
+                    <span><strong>Exchange Rate:</strong></span>
+                    <span>30 points = $1.00 AUD</span>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span><strong>Participation Fee:</strong></span>
+                    <span>$10.00 AUD</span>
+                </div>
+            </div>
+
+            <p style="font-size: 1.25em;" class="mt-4 mb-3">
+                Your total final earnings: <br>
+                <span style="color: #28a745; font-size: 1.5em; font-weight: bold;">
+                    {{ rounded_payoff }} AUD
+                </span>
+            </p>
+
+            <hr class="my-4">
+
+            <div class="alert alert-info text-start mb-3" role="alert" style="font-size: 1.05em;">
+                <p class="fw-bold mb-2">To receive your payment:</p>
+                <ol class="mb-0 ps-3">
+                    <li>Copy your total earnings (<strong>{{ rounded_payoff }} AUD</strong>) onto your <strong>Receipt form</strong>.</li>
+                    <li>Fill in your personal details, seat number, and preferred payment option (cash or bank transfer).</li>
+                </ol>            
+            </div>
+
+            <div class="p-3 my-3 bg-white rounded border text-start" style="font-size: 1.05em; line-height: 1.6;">
+                <span><strong>Please stay seated</strong> until the experimenter calls you to the front desk. While you wait:</span>
+                <ol class="mb-0 mt-2 ps-3">
+                    <li>Gather your personal belongings.</li>
+                    <li>Collect all materials from your desk, including the Information sheet, Experiment instructions, and Receipt form.</li>
+                </ol>
+                <div class="mt-2">
+                    When called, bring these documents with you to the front desk. You may keep the Information sheet, but all other materials must be returned.
+                </div>
+            </div>
+
+        </div>
+    </div>
+{{ endblock }}
