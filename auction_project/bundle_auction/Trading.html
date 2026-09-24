@@ -58,7 +58,6 @@
         padding: 6px;
         background-color: #e9ecef;
         border-bottom: 1px solid #ccc;
-        color: #333;
     }
 
     /* Temporary Trade Alert Styling */
@@ -174,9 +173,8 @@
 
     .units-tracker {
         margin-top: 4px;
-        font-size: 0.85rem;
+        font-size: 1rem;
         font-weight: bold;
-        color: #333;
         background-color: #e2e3e5;
         border: 1px solid #d6d8db;
         border-radius: 4px;
@@ -265,12 +263,12 @@
                 <!-- MIDDLE COL: Next Value/Cost -->
                 <div class="action-col" style="padding: 10px;">
                     <div class="mv-mc-box-horizontal">
-                        <span style="font-weight: bold; color: #555; display: block;">{{ if player.is_buyer }}Value{{ else }}Cost{{ endif }}:</span>
+                        <span style="font-weight: bold; display: block;">{{ if player.is_buyer }}Value{{ else }}Cost{{ endif }}:</span>
                         <strong>$<span id="marginal_{{ p.safe_id }}">--</span></strong>
                     </div>
                     <div class="units-tracker">
                         Units Traded: <span id="units_count_{{ p.safe_id }}">0</span>
-                    </div>
+                    </div>  
                 </div>
 
                 <!-- RIGHT COL: Seller Input -->
@@ -289,19 +287,19 @@
             <div class="market-columns">
                 <!-- LEFT COL: Buyer Prices (Bids) -->
                 <div class="col">
-                    <div class="col-title" style="color: #28a745;">Buyer Prices</div>
+                    <div class="col-title" style="color: #28a745;">Buyer Bids</div>
                     <ul class="list-area" id="bids_{{ p.safe_id }}"></ul>
                 </div>
 
                 <!-- MIDDLE COL: Completed Trades -->
                 <div class="col">
-                    <div class="col-title" style="color: #6c757d;">Completed Trades</div>
+                    <div class="col-title">Completed Trades</div>
                     <ul class="list-area" id="trades_{{ p.safe_id }}"></ul>
                 </div>
 
                 <!-- RIGHT COL: Seller Prices (Asks) -->
                 <div class="col">
-                    <div class="col-title" style="color: #dc3545;">Seller Prices</div>
+                    <div class="col-title" style="color: #dc3545;">Seller Asks</div>
                     <ul class="list-area" id="asks_{{ p.safe_id }}"></ul>
                 </div>
             </div>
@@ -368,10 +366,15 @@
     // Handles the manual input box submission
     function submitInputOrder(action, pType, safeId) {
         let inputEl = document.getElementById(`input_${action}_${safeId}`);
-        let price = parseFloat(inputEl.value);
-        
-        if (!inputEl.value || isNaN(price) || price <= 0) {
-            return alert("Please enter a valid positive price.");
+        let rawValue = inputEl.value.trim();
+        let price = parseFloat(rawValue);
+        let twoDecimalRegex = /^\d+(\.\d{1,2})?$/;
+
+        if (!rawValue || isNaN(price) || price <= 0 || !twoDecimalRegex.test(rawValue)) {
+            return alert("Please enter a valid positive price with up to 2 decimal places.");
+        }
+        else if (price > 50) {
+            return alert("Offers cannot exceed $50. Please enter a lower price.");
         }
         submitSpecificOrder(action, price.toFixed(2), pType, safeId);
         
